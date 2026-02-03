@@ -22,8 +22,8 @@ const BlogPostCard = ({
       <h3 className="text-slate-800 sm:text-2xl text-xl font-extrabold leading-8 line-clamp-2">
        {title}
       </h3>
-      <div className="w-full flex flex-wrap 
-        items-center  sm:gap-3 gap-2 leading-7 text-slate-800">
+      <div className="w-full flex 
+        items-center  sm:gap-3 gap-2 leading-7 text-slate-400">
         <time className="whitespace-nowrap text-lg">{date}</time>
         <span className="
           text-slate-800
@@ -31,6 +31,7 @@ const BlogPostCard = ({
           |
         </span>
         <span className="
+
           text-lg
           truncate
         ">

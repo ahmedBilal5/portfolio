@@ -23,7 +23,7 @@ const RecentPosts = ({
   return (
     <section className="w-full bg-slate-100 py-4 md:py-6 mt-5 sm:mt-10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full">
-        <div className="flex flex-row items-start sm:items-center justify-between mb-8 md:mb-12 gap-4">
+        <div className="flex flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-4">
           <h2 className="text-slate-800 text-lg md:text-xl lg-text-2xl font-normal md:font-medium leading-8 md:leading-9 lg:leading-10">
             {title}
           </h2>
