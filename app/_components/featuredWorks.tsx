@@ -18,7 +18,6 @@ const FeaturedWorks = ({ title, maxWorks, works }: FeaturedWorksProps) => {
       {displayedWorks.length > 0 ? (
         <div className="grid grid-cols-1">
           {displayedWorks.map((work) => (
-            <>
             <WorkCard
               key={work.title}
               title={work.title}
@@ -27,9 +26,8 @@ const FeaturedWorks = ({ title, maxWorks, works }: FeaturedWorksProps) => {
               tags={work.tags}
               imageUrl={work.imageUrl}
               href={work.href}
+              showOutline
             />
-            <div className="h-0 outline outline-neutral-200 mb-2 md:mb-4" />
-            </>
           ))}
         </div>
       ) : (

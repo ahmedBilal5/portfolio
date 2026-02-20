@@ -1,6 +1,6 @@
 import Link from "next/link";
 import BlogPostCard, { BlogPostCardProps } from "./blogPostCard";
-type Post = BlogPostCardProps & {
+export type Post = BlogPostCardProps & {
   id: any;
 };
 
@@ -53,6 +53,7 @@ const RecentPosts = ({
                 tags={post.tags}
                 description={post.description}
                 href={post.href || `/blog/${post.id}`}
+                display="shadow"
                 // className="h-full"
               />
             ))}

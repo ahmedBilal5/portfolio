@@ -7,6 +7,7 @@ export interface BlogPostCardProps {
   tags: string[];
   description: string;
   href: string;
+  display: 'shadow' | 'outline'
 }
 
 const BlogPostCard = ({
@@ -14,11 +15,12 @@ const BlogPostCard = ({
   date,
   tags,
   description,
-  href
+  href,
+  display
 }: BlogPostCardProps) => {
   return (
     <Link href={href}>
-    <article  className="max-w-[650px] min-h-[208px] bg-white rounded-md flex flex-col sm:gap-3 gap-1 p-5 hover:shadow-md transition-shadow duration-200 cursor-pointer">
+    <article  className={`max-w-[650px] min-h-[208px] bg-white rounded-md flex flex-col sm:gap-3 gap-1 p-5 ${display === 'shadow' ? 'hover:shadow-md transition-shadow duration-200 cursor-pointer': 'hover:bg-gray-50 transition-colors'}`}>
       <h3 className="text-slate-800 sm:text-2xl text-xl font-extrabold leading-8 line-clamp-2">
        {title}
       </h3>
@@ -42,6 +44,7 @@ const BlogPostCard = ({
         {description}
       </p>
     </article>
+    {display === 'outline' && <div className="h-0 outline outline-neutral-200 mb-2 md:mb-4" />}
     </Link>
   );
 };

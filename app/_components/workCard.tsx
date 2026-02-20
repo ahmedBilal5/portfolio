@@ -6,7 +6,8 @@ export interface WorkCardProps {
   description: string;
   tags: string[];
   imageUrl: string;
-  href: string
+  href: string;
+  showOutline: boolean;
 }
 const WorkCard = ({
   title,
@@ -14,7 +15,8 @@ const WorkCard = ({
   description,
   tags,
   imageUrl = 'https://placehold.co/256x192',
-  href
+  href,
+  showOutline
 }: WorkCardProps) => {
   return (
     <Link href={href}>
@@ -43,6 +45,7 @@ const WorkCard = ({
         </p>
       </div>
     </article>
+    {showOutline && <div className="h-0 outline outline-neutral-200 mb-2 md:mb-4" />}
     </Link>
   );
 };
