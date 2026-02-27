@@ -1,1 +1,17 @@
 @import 'tailwindcss';
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme {
+  --color-card: hsl(207 97% 12%);
+  --color-background-light: hsl(0 0% 100%);
+  --color-background-dark: hsl(0, 1.03%, 19.02%);
+}
+
+:root[data-theme="light"] {
+  background-color: var(--color-background-light);
+}
+
+:root[data-theme="dark"] {
+  background-color: var(--color-background-dark);
+}

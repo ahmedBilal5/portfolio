@@ -1,3 +1,4 @@
+import { ThemeProvider } from 'next-themes'
 import './globals.css'
 import { Heebo } from 'next/font/google'
 
@@ -8,8 +9,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={heebo.className}>
-      <body>{children}</body>
+    <html lang="en" className={heebo.className} suppressHydrationWarning>
+      <body>
+      <ThemeProvider enableSystem={true} defaultTheme="system">
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

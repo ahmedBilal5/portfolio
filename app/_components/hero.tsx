@@ -25,10 +25,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Image - Shows first on mobile */}
         <div className="order-1 md:order-2 relative md:w-[280px] md:h-[280px] w-48 h-48 flex-shrink-0">
           {/* Background circle */}
-          <div className="absolute inset-0 bg-slate-100 rounded-full" />
+          <div className=" inset-0 bg-slate-100 rounded-full" />
           
           {/* Image with shadow and outline */}
-          <div className="relative w-full h-full rounded-full shadow-lg outline outline-2 outline-offset-[-2px] outline-white overflow-hidden">
+          <div className=" w-full h-full rounded-full shadow-lg outline outline-2 outline-offset-[-2px] outline-white overflow-hidden">
             <div className="w-full h-full overflow-hidden">
               <img 
                 className="w-full h-full object-cover" 
