@@ -12,7 +12,7 @@ const FeaturedWorks = ({ title, maxWorks, works }: FeaturedWorksProps) => {
   return (
     <section className="py-4 md:py-6 mt-5 sm:mt-10">
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full">
-        <h2 className="text-slate-800 text-lg md:text-xl lg-text-2xl font-normal md:font-medium leading-8 md:leading-9 lg:leading-10 mb-4 md:mb-6">
+        <h2 className=" text-lg md:text-xl lg-text-2xl font-normal md:font-medium leading-8 md:leading-9 lg:leading-10 mb-4 md:mb-6">
           {title}
         </h2>
       {displayedWorks.length > 0 ? (

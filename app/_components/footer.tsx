@@ -22,13 +22,13 @@ const year = new Date().getFullYear();
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={platform.name}
-                        className="inline-flex items-center justify-center p-1 rounded hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        className="inline-flex items-center justify-center p-1 rounded hover:bg-hover focus:outline-none focus:ring-2"
                         >
-                        <img key={platform.name} src={platform.iconSrc} alt={platform.name}/>
+                        <img key={platform.name} src={platform.iconSrc} alt={platform.name} className="dark:invert"/>
                         </a>
                 ))}
             </div>
-            <h3 className="text-slate-800 text-base font-normal line-clamp-3">
+            <h3 className=" text-base font-normal line-clamp-3">
                Copyright © {year}. All Rights Reserved
             </h3>
         </div>

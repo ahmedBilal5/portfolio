@@ -3,15 +3,49 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @theme {
-  --color-card: hsl(207 97% 12%);
+  --color-card: hsl(0 0% 100%);
+  --color-font: hsl(218, 36%, 18%);
+  --color-background: hsl(0 0% 100%);
   --color-background-light: hsl(0 0% 100%);
   --color-background-dark: hsl(0, 1.03%, 19.02%);
+  --color-font-light: hsl(218, 36%, 18%);
+  --color-card-hovered: hsl(210, 20%, 98%);
+  --color-banner: hsl(194, 57%, 95%);
+  --color-font-dark: hsl(234, 30%, 82%);
+  --color-hover: hsl(210,20%,98%);
+  
+}
+@layer base {
+  [data-theme="light"] {
+    --color-card: hsl(0 0% 100%);
+    --color-background: hsl(0 0% 100%);
+    --color-banner: hsl(194, 57%, 95%);
+    --color-card-hovered: hsl(210, 20%, 98%);
+    --color-font: hsl(218, 36%, 18%);
+    --color-hover: hsl(210,20%,98%);
+    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+  [data-theme="dark"] {
+    --color-background: hsl(0, 1.03%, 19.02%);
+    --color-card: hsl(0, 1.03%, 19.02%);
+    --color-banner: hsl(0, 0%, 11%);
+    --color-font: hsl(234, 30%, 82%);
+    --color-hover: hsl(0, 1%, 25%);
+    --shadow-card: 0 4px 6px -1px rgb(255 255 255 / 0.1), 
+              0 2px 4px -2px rgb(255 255 255 / 0.15);
+  }
 }
 
-:root[data-theme="light"] {
+/* :root[data-theme="light"] {
   background-color: var(--color-background-light);
 }
 
 :root[data-theme="dark"] {
   background-color: var(--color-background-dark);
+} */
+:root{
+  background-color: var(--color-background);
+}
+body {
+  color: var(--color-font)
 }
