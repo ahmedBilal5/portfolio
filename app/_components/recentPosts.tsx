@@ -21,8 +21,9 @@ const RecentPosts = ({
 }: RecentPostsSectionProps) => {
   const displayedPosts = posts.slice(0, maxPosts);
   return (
-    <section className="w-full bg-banner py-4 md:py-6 mt-5 sm:mt-10">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-full">
+    <section className="ml-[calc(-50vw+50%)] mr-[calc(-50vw+50%)] bg-banner py-4 md:py-6 mt-5 sm:mt-10">
+    <div className="max-w-sections mx-auto">
+      <div className="container px-4 sm:px-6 lg:px-8 max-w-full">
         <div className="flex flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-4">
           <h2 className=" text-lg md:text-xl lg-text-2xl font-normal md:font-medium leading-8 md:leading-9 lg:leading-10">
             {title}
@@ -71,6 +72,7 @@ const RecentPosts = ({
           </div>
         )}
       </div>
+    </div>
     </section>
   );
 };

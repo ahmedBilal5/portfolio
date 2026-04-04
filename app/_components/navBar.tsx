@@ -32,7 +32,8 @@ const NavBar = () => {
   ));
 
   return (
-    <div className="sticky top-0 z-10 bg-background/90 mt-2 py-2 md:mb-16.5 mb-7 flex flex-row justify-end gap-8 ">
+    <section className="sticky top-0 z-10 md:backdrop-blur-[4px] bg-background/90 ml-[calc(-50vw+50%)] mr-[calc(-50vw+50%)] py-2 md:mb-16.5 mb-7 ">
+    <div className="max-w-sections mx-auto flex flex-row justify-end gap-8 ">
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
 
       <ul
@@ -45,9 +46,9 @@ const NavBar = () => {
         {/* <StaticThemeButtonOther/> */}
       </ul>
 
-      <ul className="hidden md:flex md:flex-row md:space-x-6 md:translate-x-0 md:pt-0 md:space-y-0 md:bg-transparent md:shadow-none">
+      <ul className="hidden md:flex md:flex-row md:space-x-6 md:translate-x-0 md:pt-0 md:space-y-0 md:bg-transparent md:shadow-none px-3">
         {navLinks}
-        <ThemeButton />
+        <ThemeButton/>
       </ul>
 
       {/* Hamburger Icon (hidden on md and up) */}
@@ -63,6 +64,7 @@ const NavBar = () => {
         <span className="block h-1 bg-font rounded transition-transform duration-300 origin-bottom-left"></span>
       </label>
     </div>
+    </section>
   );
 };
 export default NavBar;

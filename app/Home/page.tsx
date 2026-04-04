@@ -76,7 +76,7 @@ const socialPlatforms = [
 ];
 
   return (
-    <div className="w-full max-w-[1404px] mx-auto px-4 md:px-8">
+    <div className="w-full max-w-sections mx-auto px-4 md:px-8">
       <NavBar />
       <HeroSection
         name="John"
