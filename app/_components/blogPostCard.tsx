@@ -8,6 +8,7 @@ export interface BlogPostCardProps {
   description: string;
   href: string;
   display: 'shadow' | 'outline'
+  className?: string
 }
 
 const BlogPostCard = ({
@@ -16,20 +17,19 @@ const BlogPostCard = ({
   tags,
   description,
   href,
-  display
+  display,
+  className = ""
 }: BlogPostCardProps) => {
   return (
     <Link href={href}>
-    <article  className={`max-w-[650px] min-h-52 bg-card rounded-md flex flex-col sm:gap-3 gap-1 p-5 ${display === 'shadow' ? 'hover:shadow-(--shadow-card) transition-shadow duration-200 cursor-pointer': 'hover:bg-hover transition-colors'}`}>
+    <article  className={`max-w-[650px] min-h-52 bg-card rounded-md flex flex-col sm:gap-3 gap-1 p-5 ${display === 'shadow' ? 'hover:shadow-(--shadow-card) transition-shadow duration-200 cursor-pointer': 'hover:bg-hover transition-colors pt-6'} ${className} p-1`}>
       <h3 className=" sm:text-2xl text-xl font-extrabold leading-8 line-clamp-2">
        {title}
       </h3>
       <div className="w-full flex 
         items-center  sm:gap-3 gap-2 leading-7 text-slate-400">
         <time className="whitespace-nowrap text-lg">{date}</time>
-        <span className="
-          
-        ">
+        <span>
           |
         </span>
         <span className="
@@ -44,7 +44,7 @@ const BlogPostCard = ({
         {description}
       </p>
     </article>
-    {display === 'outline' && <div className="h-0 outline outline-neutral-200 mb-2 md:mb-4" />}
+    {display === 'outline' && <div className="h-0 outline outline-neutral-200" />}
     </Link>
   );
 };

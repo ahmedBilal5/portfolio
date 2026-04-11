@@ -32,7 +32,7 @@ const NavBar = () => {
   ));
 
   return (
-    <section className="sticky top-0 z-10 md:backdrop-blur-[4px] bg-background/90 ml-[calc(-50vw+50%)] mr-[calc(-50vw+50%)] py-2 md:mb-16.5 mb-7 ">
+    <section className="sticky top-0 z-10 md:backdrop-blur-[4px] bg-background/90 ml-[calc(-50vw+50%)] mr-[calc(-50vw+50%)] py-2">
     <div className="max-w-sections mx-auto flex flex-row justify-end gap-8 ">
       <input type="checkbox" id="menu-toggle" className="peer hidden" />
 
