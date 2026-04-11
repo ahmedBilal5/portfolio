@@ -1,14 +1,6 @@
-import BlogPostCard, { BlogPostCardProps } from "../_components/blogPostCard";
-import FeaturedWorks from "../_components/featuredWorks";
-import Footer, { Platform } from "../_components/footer";
-import HeroSection from "../_components/hero";
-import NavBar from "../_components/navBar";
-import RecentPosts, { Post } from "../_components/recentPosts";
-import WorkCard from "../_components/workCard";
+import { Post } from "./_components/recentPosts";
 
-export default (Home) => {
-
-    const recentPosts: Post[] = [
+    export const recentPosts: Post[] = [
     {
       id: 1,
       title: "Making a design system from scratch",
@@ -38,7 +30,7 @@ export default (Home) => {
     }
   ];
 
-  const featuredWorks = [
+  export const featuredWorks = [
     {
         title:"Designing Dashboards",
         year:"2020",
@@ -69,32 +61,8 @@ export default (Home) => {
 
   ]
 
-const socialPlatforms = [
+export const socialPlatforms = [
   { name: 'Linkedin', iconSrc: '/platforms/linkedin-outlined.svg', href: '' },
   { name: 'Github', iconSrc: '/platforms/github-outlined.svg', href: '' },
   { name: 'Stack Overflow', iconSrc: '/platforms/stackoverflow-outlined.svg', href: '' }
 ];
-
-  return (
-    <div className="w-full max-w-sections mx-auto px-4 md:px-8">
-      <NavBar />
-      <HeroSection
-        name="John"
-        title="Creative Technologist"
-        description="Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit officia consequat duis enim velit mollit. Exercitation veniam consequat sunt nostrud amet."
-        buttonText="Download Resume"
-        imageUrl="https://placehold.co/284x284"
-        buttonOnClick={async () => {
-          "use server";
-          console.log("Resume downloaded");
-        }}
-      />
-      <RecentPosts
-        posts={recentPosts}
-        maxPosts={3}
-      />
-      <FeaturedWorks title={"Featured Works"} maxWorks={4} works={featuredWorks}/>    
-      <Footer platforms={socialPlatforms}/> 
-    </div>
-  );
-};
