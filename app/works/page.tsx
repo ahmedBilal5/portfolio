@@ -36,6 +36,6 @@ export default function Works() {
           No recent posts available.
         </div>
       )}
-    </>
+    </div>
   );
 }
