@@ -1,23 +1,792 @@
 export const metadata = {
-  title: "Some title",
+  title: "Using MUI data-grid to preview a custom expression language",
   featuredImage: "path-to-image",
-  publishDate: "2024-11-20",
-  lastModified: "2024-11-20",
-  author: {
-    name: "Author Name",
-    bio: "A short bio about the author",
-    avatar: "path-to-avatar-image",
-  },
-  excerpt: "Short description of the post, to be displayed on post cards",
-  tags: ["Array", "of", "tags"],
-  seo: {
-    metaTitle: "A Title for SEO, can be the same as your post title",
-    metaDescription: "Description for SEO, can be the same as excerpt",
-  },
+  publishDate: "2026-05-20",
+  lastModified: "2026-05-20",
+  excerpt: "To show how MUI data-grid-pro can be used as a complex nested Expression Preview",
+  tags: ["React", "MUI", "data-grid"],
 };
 
 ;
 
-# Hello World
+Assalam u Alaikum Folks! The motivation for this blog is to show how the **MUI data-grid** React component can be used in a _unique_ use-case: To preview the results of nested expressions. Here is how it looks:
+# Step-by-step high level approach 
+## 1. Type Definitions
+ First thing that we need are type definitions for our expression language. These can, of course, be quite comprehensive depending on how complex our language is. A short sample of the types for my language in typescript:
+ ```ts
+export type Switch = {
+  Expression: SwitchExpressionBlock;
+  Cases: CaseBlock[];
+};
+export type SwitchExpressionBlock = {
+  AssignedTo: Attribute | undefined;
+  SwitchType: 'attribute' | 'expression' | 'function';
+  SwitchExpression: Attribute | ExpressionTree | Function | undefined;
+};
+export type CaseBlock = {
+  LeftOperand: Constant;
+  RightOperandType: 'attribute' | 'constant' | 'expression' | 'function' | 'null';
+  RightOperand: Attribute | Constant | ExpressionTree | Function | undefined;
+};
 
-This is my first post!
+// If else types
+export type IfElse = {
+  IfBlocks: IfBlock[];
+  ElseBlock: ThenBlock;
+};
+
+export type IfBlock = {
+  ConditionType: 'function' | 'expression';
+  Condition: Function | ExpressionTree | undefined;
+  Then: ThenBlock;
+};
+
+export type ThenBlock = {
+  LeftOperand: Attribute | undefined;
+  RightOperandType: 'attribute' | 'constant' | 'expression' | 'function' | 'null';
+  RightOperand: Attribute | Constant | ExpressionTree | Function | undefined;
+  ExprResult?: (string | string[] | number | {})[]; //For Preview value result
+};
+
+export type ExpressionTree = Expression[];
+
+export type Expression = {
+  Operator: string;
+  ExpressionType: 'attribute' | 'expression' | 'constant' | 'function' | 'null';
+  ExpressionNode: Attribute | Constant | Function | ExpressionTree | undefined;
+  ExprResult?: (string | string[] | number | {})[]; //For Preview value result
+};
+ ```
+ This is just a subset of all the types to get the main idea across. Note that we will be using the data-grid only to **display** the expression and its computed results at each level, not **build** the expression. Building is done separately using an expression builder component which is out of the scope of our topic.
+ ## 2. Setting up the data-grid
+ First lets set up a simple data-grid:
+ ```ts
+ const FunctionTree = ({ open }: { open: boolean }) => {
+ 
+  const columns: GridColDef[] = [
+    {
+      field: 'value',
+      flex: 1,
+      disableColumnMenu: true,
+      filterable: false,
+      sortable: false,
+    }
+  ];
+
+  const groupingColDef: DataGridProProps['groupingColDef'] = {
+    headerName: 'Transformation'.toUpperCase(),
+    flex: 2,
+  };
+
+  return (
+    <DataGridCustom
+      rows={[]}
+      treeData
+      columns={columns}
+      groupingColDef={groupingColDef}
+      getRowId={(row: PreviewFunctionTreeType) => row?.treePath}
+      getTreeDataPath={(row: PreviewFunctionTreeType) =>
+        row?.treePath?.split('/')
+      }
+      headerHeight={45}
+      autoHeight={false}
+      isRowSelectable={() => false}
+      treeViewStyles={FunctionTreeStyles.previewTreeStyles}
+      components={{
+        NoRowsOverlay: () => (
+            <NoRowsOverlay
+            message="Create a Mapping to see preview"
+            styles={{
+                position: 'absolute',
+            }}
+            />
+        ),
+    }}
+    />
+  );
+};
+ ```
+ This much is simple. Note the: 
+ ```
+ getTreeDataPath={(row: PreviewFunctionTreeType) =>
+        row?.treePath?.split('/')
+      }
+ ```
+ This is because we will be building our tree path rows separated by `/`. For example, for a parameter inside the  `split`  function inside a `concat` function, the tree path will look like `concat-1/split-1/attr1`.
+ Next, we be adding the API to fetch the right-hand side computed values for our expressions at each level. 
+ ## 3. Adding API call to get expression results
+For the above, we are using [Web Assembly](https://webassembly.org/) to run the expression logic inside the browser and give us back the computed results. Here is our updated component with the API logic:
+ 
+```ts
+const FunctionTree = ({ open }: { open: boolean }) => {
+  
+  const mappingJson = useSelector(
+    (state: RootState) => state?.DataFlow?.mapping?.mappingJson
+  ); //This is the whole set of expressions coming from global state (redux)
+
+  const sampleData = useSelector(
+    (state: RootState) => state?.DataFlow?.sampleData?.data
+  );  //These are rows of sample data on which we will be computing the expressions coming from global state (redux)
+
+
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState<number>(0);
+  const [functionTree, setFunctionTree] = useState<PreviewFunctionTreeType[]>(
+    []
+  );
+  
+ 
+
+  const fetchMappingResultsOnSampleData = async (
+    sampleData: any[],
+    recordNumber: number,
+    mappingJson: Mapping[]
+  ) => {
+    try {
+      let res = null;
+      let fetchedData: Mapping[] = [];
+      setLoading(true);
+      console.log('mappingJson: ', mappingJson);
+      res = await loadWasmAndProcess({ //Loads WASM binary in the browser and calls the expression computer method from it
+        mappingJson: mappingJson,
+        sampleData: [sampleData[recordNumber]],
+      });
+      fetchedData = res?.data;
+      const tree: PreviewFunctionTreeType[] =
+        constructFunctionTree(fetchedData);
+      setFunctionTree(tree);
+    } catch (error: any) {
+      console.error('Error fetching values for transforms:', error);
+      notification.error({ message: `Error fetching values for transforms` });
+		  //Here we will add the logic to build the expression tree before setting it to state
+      setFunctionTree(tree);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (sampleData && mappingJson && open) {
+      fetchMappingResultsOnSampleData(sampleData, page, mappingJson);
+    }
+  }, [sampleData, mappingJson, page, open]);
+
+    
+  const columns: GridColDef[] = [
+    {
+      field: 'value',
+      flex: 1,
+      disableColumnMenu: true,
+      filterable: false,
+      sortable: false,
+      },
+  ];
+
+  const groupingColDef: DataGridProProps['groupingColDef'] = {
+    headerName: 'Transformation'.toUpperCase(),
+    flex: 2,
+  };
+
+  return (
+    <TreeComponent
+      rows={functionTree ?? []}
+      columns={columns}
+      groupingColDef={groupingColDef}
+      getRowId={(row: PreviewFunctionTreeType) => row?.treePath}
+      getTreeDataPath={(row: PreviewFunctionTreeType) =>
+        row?.treePath?.split('/')
+      }
+      loading={loading}
+      headerHeight={45}
+      autoHeight={false}
+      isRowSelectable={() => false}
+      treeViewStyles={FunctionTreeStyles.previewTreeStyles}
+      components={{
+        NoRowsOverlay: () => (
+            <NoRowsOverlay
+            message="Create a Mapping to see preview"
+            styles={{
+                position: 'absolute',
+            }}
+            />
+        ),
+    }}
+    />
+  );
+};
+```
+Right now, the component code contains some gaps, but we will keep filling them in due course step by step.
+
+## 4. Building the Expression Trees
+This is an interesting part. We will need to build the right data structure to pass to the `data-grid` `rows` prop. As you can imagine from our type definitions in Step 1, we will need to recursively traverse the structures to build the tree data. For that purpose, I decided to write a custom hook to encapsulate all the recursive logic. I will provide part of it here to give you a good idea:
+```ts
+//For Mapping Preview
+export enum PreviewTreeTokenType {
+  PARAM = 'param',
+  CONSTANT = 'constant',
+  ATTRIBUTE = 'attribute',
+  NULL = 'null',
+  OPENING_BRACKET = '(',
+  CLOSING_BRACKET = ')',
+  ELLIPSES = '...',
+  FUNCTION_ELLIPSES = 'functionEllipses',
+  ASSIGN = '=',
+  THEN = 'then',
+  EXPRESSION_OPERATOR = 'expressionOperator',
+  EXPRESSION = 'expression',
+  IFCONDITION = 'ifCondition',
+  ELSEIFCONDITION = 'elseIfCondition',
+  ELSECONDITION = 'elseCondition',
+}
+
+export type PreviewFunctionTreeType = {
+  treePath: string;
+  type:
+    | Exclude<
+        PreviewTreeTokenType,
+        PreviewTreeTokenType.ELLIPSES | PreviewTreeTokenType.FUNCTION_ELLIPSES
+      >
+    | FunctionType;
+  source?:
+    | Attribute
+    | Constant
+    | Function
+    | IfBlock
+    | ThenBlock
+    | ExpressionTree
+    | { [key: string]: any }
+    | string;
+  value?: string | string[] | number | {};
+};
+
+const useConstructFunctionTree = () => {
+  /**
+     Function to extract and return all source values from mappingJson
+    */
+  const extractMappingsSource = (mappingJson: Mapping[]) => {
+    const mappingJsonSourceOnly = mappingJson.map(
+      (mapping: Mapping) => mapping.Source
+    );
+    return mappingJsonSourceOnly;
+  };
+
+  /**
+     Function to construct tree data for mapping preview
+    */
+  const constructTree = (mappingJson: Mapping[]) => {
+    const functionTree: PreviewFunctionTreeType[] = [];
+    const mappingJsonSourcesOnly = extractMappingsSource(mappingJson).filter(
+      mappingSource => mappingSource !== undefined
+    );
+    mappingJsonSourcesOnly.forEach((mappingSource, index) => {
+      if (mappingSource) {
+        //case of function
+        if ('InputColumns' in mappingSource) {
+          functionTree.push(
+            ...getTreeForFunction(mappingSource, mappingSource?.id)
+          );
+        }
+        //case of attribute or constant
+        else {
+          functionTree.push(
+            ...getTreeForAttribute(
+              mappingSource,
+              `${index}-${mappingSource?.Path}`
+            )
+          );
+        }
+      }
+    });
+    return functionTree;
+  };
+
+  const getTreeForFunction = (mappingFunction: Function, treePath: string) => {
+    const functionTree: PreviewFunctionTreeType[] = [];
+    functionTree.push({
+      treePath: `${treePath}`,
+      source: mappingFunction,
+      type: mappingFunction?.Type,
+      value: mappingFunction?.ExprResult?.[0],
+    });
+    if (mappingFunction?.Conditions) {
+      if ('IfBlocks' in mappingFunction?.Conditions)
+        functionTree.push(
+          ...getTreeForIfConditionalFunction(
+            mappingFunction?.Conditions,
+            treePath
+          )
+        );
+      else
+        functionTree.push(
+          ...getTreeForSwitchConditionalFunction(
+            mappingFunction?.Conditions,
+            treePath
+          )
+        );
+    } else {
+      functionTree.push(
+        ...getTreeForFunctionParams(mappingFunction?.Params, treePath)
+      );
+      functionTree.push(
+        ...getTreeForFunctionInputs(mappingFunction?.InputColumns, treePath)
+      );
+    }
+    functionTree.push({
+      treePath: `${treePath}/)`, //adding path for closing bracket
+      type: PreviewTreeTokenType.CLOSING_BRACKET,
+    });
+    return functionTree;
+  };
+
+  const getTreeForAttribute = (
+    attribute: Attribute | Constant,
+    treePath: string
+  ) => {
+    const functionTree: PreviewFunctionTreeType[] = [];
+    if ('IsUserDefined' in attribute) {
+      functionTree.push({
+        treePath: `${treePath}`,
+        source: attribute,
+        type: PreviewTreeTokenType.CONSTANT,
+        value: attribute?.ExprResult?.[0],
+      });
+    } else {
+      functionTree.push({
+        treePath: `${treePath}`,
+        source: attribute,
+        type: PreviewTreeTokenType.ATTRIBUTE,
+        value: attribute?.ExprResult?.[0],
+      });
+    }
+    return functionTree;
+  };
+
+  const getTreeForFunctionInputs = (
+    inputColumns: (Attribute | Function | Constant)[],
+    treePath: string
+  ) => {
+    const functionTree: PreviewFunctionTreeType[] = [];
+    inputColumns.forEach((inputColumn, index) => {
+      if ('InputColumns' in inputColumn) {
+        functionTree.push(
+          ...getTreeForFunction(inputColumn, `${treePath}/${inputColumn?.id}`)
+        );
+      } else {
+        functionTree.push(
+          ...getTreeForAttribute(
+            inputColumn,
+            `${treePath}/${index}-${inputColumn?.Path}`
+          )
+        );
+      }
+    });
+    return functionTree;
+  };
+  /*
+      if params are an object:
+      lookupFields: {lookup_table: 'currency', lookup_value: '4'},
+      
+
+      Paths should be:
+
+      Condition/LookupFields
+      Condition/LookupFields/lookup_table
+      Condition/LookupFields/lookup_value
+
+      if params are an array:
+      lookupFields: [
+        {lookup_table: 'currency', lookup_value: '4'},
+        {lookup_table: 'currency', lookup_value: '4'},
+        {lookup_table: 'currency', lookup_value: '4'}
+      ]
+
+      Paths should be:
+
+      Condition/LookupFields
+      Condition/LookupFields/lookup_table-0
+      Condition/LookupFields/lookup_value-0
+      Condition/LookupFields/lookup_table-1
+      Condition/LookupFields/lookup_value-1
+      Condition/LookupFields/lookup_table-2
+      Condition/LookupFields/lookup_value-2
+     */
+
+  const getTreeForFunctionParams = (
+    params: { [key: string]: string | number | any },
+    treePath: string,
+    index?: number
+  ) => {
+    const functionTree: PreviewFunctionTreeType[] = [];
+
+    Object.entries(params).forEach(([key, value]: [string, any]) => {
+      let assignValue: boolean = true,
+        path: string;
+
+      if (Array.isArray(value) || (value != null && typeof value === 'object'))
+        assignValue = false;
+
+      if (index !== undefined) path = `${treePath}/${key}-${index}`;
+      else path = `${treePath}/${key}`;
+
+      functionTree.push({
+        treePath: path,
+        source: { [key]: value },
+        value: assignValue ? value : undefined,
+        type: PreviewTreeTokenType.PARAM,
+      });
+      //case value is array of objects
+      if (Array.isArray(value)) {
+        value = value.flat(Infinity);
+        value?.forEach((val: Object, index: number) => {
+          if (typeof val === 'object')
+            functionTree.push(
+              ...getTreeForFunctionParams(val, `${treePath}/${key}`, index)
+            );
+        });
+      }
+      //case of object value
+      else if (value != null && typeof value === 'object') {
+        functionTree.push(
+          ...getTreeForFunctionParams(value, `${treePath}/${key}`)
+        );
+      }
+    }); 
+    return functionTree;
+  };
+
+  const getTreeForNull = (treePath: string) => {
+    const functionTree: PreviewFunctionTreeType[] = [];
+    functionTree.push({
+      treePath,
+      source: 'NULL',
+      type: PreviewTreeTokenType.NULL,
+    });
+    return functionTree;
+  };
+  
+```
+Hopefully, you get the idea. Now we will call this hook in our `FunctionTree` component:
+```ts
+const FunctionTree = ({ open }: { open: boolean }) => {
+ //other code...
+ const { constructTree: constructFunctionTree, constructTokenArray } = useConstructFunctionTree();  
+
+  const fetchMappingResultsOnSampleData = async (
+    sampleData: any[],
+    recordNumber: number,
+    mappingJson: Mapping[]
+  ) => {
+    try {
+      let res = null;
+      let fetchedData: Mapping[] = [];
+      setLoading(true);
+      console.log('mappingJson: ', mappingJson);
+      res = await loadWasmAndProcess({ //Loads WASM binary in the browser and calls the expression computer method from it
+        mappingJson: mappingJson,
+        sampleData: [sampleData[recordNumber]],
+      });
+      fetchedData = res?.data;
+      //HERE:
+      const tree: PreviewFunctionTreeType[] =
+        constructFunctionTree(fetchedData);
+      setFunctionTree(tree);
+    } catch (error: any) {
+		// other code...
+  };
+ 
+ //other code...
+};
+```
+The above logic will construct the tree paths for us. But we also need logic for what to display in each row of the tree. 
+
+We have defined the following types of tokens that we will be catering:
+
+```typescript
+//For Mapping Preview
+export  enum  PreviewTreeTokenType {
+PARAM  =  'param',
+CONSTANT  =  'constant',
+ATTRIBUTE  =  'attribute',
+OPENING_BRACKET  =  '(',
+CLOSING_BRACKET  =  ')',
+ELLIPSES  =  '...',
+FUNCTION_ELLIPSES  =  'functionEllipses',
+ASSIGN  =  '=',
+THEN  =  'then',
+EXPRESSION_OPERATOR  =  'expressionOperator',
+EXPRESSION  =  'expression',
+IFCONDITION  =  'ifCondition',
+ELSEIFCONDITION  =  'elseIfCondition',
+ELSECONDITION  =  'elseCondition',
+}
+```
+
+> Remember that each row, when collapsed, will show the whole expression (in a compressed form) that is formed down its tree. But when we expand a row, it only shows the token at its current tree path, be that a function, attribute, bracket or any other.
+
+Therefore, aside from creating the tree path hierarchy for the data-grid, we also need a way to calculate what we display on each row, when collapsed and when expanded.  For that, we will add a second capability to our hook `useConstructFunctionTree`, that is, computing the token chain for each row. Here is the main function for that:
+```typescript
+ /**
+     Function to construct array of tokens for mapping preview
+    */
+  const constructTokenArray = (
+    treeNode: Pick<PreviewFunctionTreeType, 'source' | 'type'>,
+    isExpanded?: boolean
+  ): (PreviewToken | PreviewFunctionToken)[] => {
+    const tokenArray: (PreviewToken | PreviewFunctionToken)[] = [];
+    let node = treeNode?.source;
+    const type = treeNode?.type;
+    switch (type) {
+      case FunctionType.FUNCTION:
+      case FunctionType.OPERATOR: {
+        tokenArray.push(
+          {
+            name:
+              (node as Function)?.Name === 'If'
+                ? 'If Conditional'
+                : (node as Function)?.Name,
+            type: (node as Function)?.Type,
+            depthLevel: 0,
+          },
+          {
+            type: PreviewTreeTokenType.OPENING_BRACKET,
+          }
+        );
+        if (!isExpanded) {
+          tokenArray.push(
+            ...constructTokenArrayForFunctionInputs(node as Function)
+          );
+          tokenArray.push({
+            type: PreviewTreeTokenType.CLOSING_BRACKET,
+          });
+        }
+        break;
+      }
+      case PreviewTreeTokenType.IFCONDITION:
+      case PreviewTreeTokenType.ELSEIFCONDITION:
+      case PreviewTreeTokenType.ELSECONDITION: {
+        tokenArray.push(
+          ...constructTokenArrayForIfConditions(
+            isExpanded,
+            type,
+            node as IfBlock
+          )
+        );
+        break;
+      }
+      case PreviewTreeTokenType.THEN: {
+        tokenArray.push(
+          ...getTokensForThenBlock(false, isExpanded, node as ThenBlock)
+        );
+        break;
+      }
+      case PreviewTreeTokenType.EXPRESSION: {
+        tokenArray.push(
+          ...constructTokenArrayForExpression(
+            false,
+            isExpanded,
+            node as ExpressionTree
+          )
+        );
+        break;
+      }
+      case PreviewTreeTokenType.EXPRESSION_OPERATOR: {
+        tokenArray.push({
+          name: node as string,
+          type: PreviewTreeTokenType.EXPRESSION_OPERATOR,
+        });
+        break;
+      }
+      default:
+        tokenArray.push(
+          ...constructTokenArrayForLeafEntity({
+            source: node as any,
+            type: type as PreviewTreeTokenType,
+          })
+        );
+        break;
+    }
+
+    return tokenArray;
+  };
+  return { constructTree, constructTokenArray };
+};
+```
+You can get an idea just from the function above how we are using the same recursive approach we used to construct the tree here as well. Exactly what we do in each subfunction is not hard to guess once you get the big picture.
+Still, for clarity, I will add some of the sub-functions as well:
+
+```typescript
+ const constructTokenArrayForLeafEntity = (inputNode: {
+    source?: Attribute | Constant | string | { [key: string]: any };
+    type: PreviewTreeTokenType;
+  }) => {
+    const tokenArray: (PreviewToken | PreviewFunctionToken)[] = [];
+    let node = inputNode?.source;
+    const type = inputNode?.type;
+
+    if (node) {
+      if (typeof node === 'string') {
+        //case of expression operator
+        tokenArray.push({
+          name: node,
+          type: type,
+        });
+      } else {
+        //Attribute, Constant, Param
+        let name = node?.Name;
+        if (type === PreviewTreeTokenType.PARAM) {
+          name = Object.keys(node)?.[0];
+        }
+        tokenArray.push({
+          name: name,
+          ...(type !== PreviewTreeTokenType.PARAM && { dataType: node?.Type }),
+          type: type,
+        });
+      }
+    } else {
+      //Closing Bracket, Ellipses, Assign, Opening Bracket and other Token Types
+      tokenArray.push({
+        type: type,
+      });
+    }
+    return tokenArray;
+  };
+
+  const constructTokenArrayForIfConditions = (
+    isExpanded: boolean = false,
+    type:
+      | PreviewTreeTokenType.IFCONDITION
+      | PreviewTreeTokenType.ELSEIFCONDITION
+      | PreviewTreeTokenType.ELSECONDITION,
+    node?: IfBlock
+  ) => {
+    const tokenArray: (PreviewToken | PreviewFunctionToken)[] = [];
+    tokenArray?.push(
+      {
+        type: type,
+      },
+      {
+        type: PreviewTreeTokenType.OPENING_BRACKET,
+      }
+    );
+
+    if (!isExpanded) {
+      if (
+        type === PreviewTreeTokenType.IFCONDITION ||
+        type === PreviewTreeTokenType.ELSEIFCONDITION
+      ) {
+        if (node?.ConditionType == 'function') {
+          tokenArray?.push(
+            {
+              type: (node?.Condition as Function)?.Type,
+              name: (node?.Condition as Function)?.Name,
+              depthLevel: 1,
+            },
+            {
+              type: PreviewTreeTokenType.OPENING_BRACKET,
+            }
+          );
+          tokenArray?.push(
+            ...constructTokenArrayForFunctionInputs(
+              node?.Condition as Function,
+              1
+            )
+          );
+          tokenArray.push({
+            type: PreviewTreeTokenType.CLOSING_BRACKET,
+          });
+        } else {
+          tokenArray.push(
+            ...constructTokenArrayForExpression(
+              false,
+              false,
+              node?.Condition as ExpressionTree
+            )
+          );
+        }
+      }
+
+      tokenArray.push(...getTokensForThenBlock(true, false));
+      tokenArray.push({
+        type: PreviewTreeTokenType.CLOSING_BRACKET,
+      });
+    }
+
+    return tokenArray;
+  };
+
+  const constructTokenArrayForExpression = (
+    inputsHidden: boolean,
+    isExpanded: boolean = false,
+    expression?: ExpressionTree,
+    maxInputsToShow: number = 2
+  ) => {
+    const tokenArray: (PreviewToken | PreviewFunctionToken)[] = [];
+    tokenArray.push(
+      {
+        type: PreviewTreeTokenType.EXPRESSION,
+      },
+      {
+        type: PreviewTreeTokenType.OPENING_BRACKET,
+      }
+    );
+    if (!isExpanded) {
+      if (!inputsHidden) {
+        const expressionTree = expression;
+        if (expressionTree?.length) {
+          expressionTree
+            ?.slice(0, maxInputsToShow)
+            ?.forEach((expression: Expression, index: number) => {
+              if (expression?.Operator && expression?.Operator !== '()')
+                tokenArray.push({
+                  name: expression?.Operator,
+                  type: PreviewTreeTokenType.EXPRESSION_OPERATOR,
+                });
+              if (expression?.ExpressionType === 'function') {
+                tokenArray.push(
+                  ...getTokensForFunctionWithHiddenInputs(
+                    expression?.ExpressionNode as Function
+                  )
+                );
+              } else if (expression?.ExpressionType === 'attribute') {
+                tokenArray.push(
+                  ...constructTokenArrayForLeafEntity({
+                    source: expression?.ExpressionNode as Attribute,
+                    type: PreviewTreeTokenType.ATTRIBUTE,
+                  })
+                );
+              } else if (expression?.ExpressionType === 'constant') {
+                tokenArray.push(
+                  ...constructTokenArrayForLeafEntity({
+                    source: expression?.ExpressionNode as Constant,
+                    type: PreviewTreeTokenType.CONSTANT,
+                  })
+                );
+              } else {
+                tokenArray.push(
+                  ...constructTokenArrayForExpression(true, false)
+                );
+              }
+            });
+          if (expressionTree?.length > maxInputsToShow) {
+            tokenArray.push({
+              type: PreviewTreeTokenType.ELLIPSES,
+            });
+          }
+        }
+      }
+      if (inputsHidden) {
+        tokenArray.push({
+          type: PreviewTreeTokenType.ELLIPSES,
+        });
+      }
+      tokenArray.push({
+        type: PreviewTreeTokenType.CLOSING_BRACKET,
+      });
+    }
+
+    return tokenArray;
+  };
+
+```
+
+Now we are approaching the main part of this project. That is, how do we leverage the data-grid component to show the expressions. 
