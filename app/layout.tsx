@@ -13,6 +13,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={heebo.className} suppressHydrationWarning>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/dracula-prism/dist/css/dracula-prism.css"
+        />
+        </head>
+
       <body>
       <ThemeProvider enableSystem={true} defaultTheme="system">
         <div className="w-full max-w-sections mx-auto px-4 md:px-8">
