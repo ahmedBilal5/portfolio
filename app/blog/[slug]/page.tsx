@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Post from "../../../public/posts/hello-world.mdx";
+import Post from "../../../public/posts/datagrid-expression-previewer.mdx";
 import { getPost } from "./_utils/getPost";
 
 export default async function BlogPostPage({params}:{

@@ -7,9 +7,8 @@ export const metadata = {
   tags: ["React", "MUI", "data-grid"],
 };
 
-;
-
 Assalam u Alaikum Folks! The motivation for this blog is to show how the **MUI data-grid** React component can be used in a _unique_ use-case: To preview the results of nested expressions. Here is how it looks:
+![Basic Expression Preview Example](../images/expandcollapse.gif)
 # Step-by-step high level approach 
 ## 1. Type Definitions
  First thing that we need are type definitions for our expression language. These can, of course, be quite comprehensive depending on how complex our language is. A short sample of the types for my language in typescript:
@@ -107,7 +106,7 @@ export type Expression = {
 };
  ```
  This much is simple. Note the: 
- ```
+ ```typescript
  getTreeDataPath={(row: PreviewFunctionTreeType) =>
         row?.treePath?.split('/')
       }
@@ -134,9 +133,6 @@ const FunctionTree = ({ open }: { open: boolean }) => {
   const [functionTree, setFunctionTree] = useState<PreviewFunctionTreeType[]>(
     []
   );
-  
- 
-
   const fetchMappingResultsOnSampleData = async (
     sampleData: any[],
     recordNumber: number,
@@ -360,109 +356,6 @@ const useConstructFunctionTree = () => {
     }
     return functionTree;
   };
-
-  const getTreeForFunctionInputs = (
-    inputColumns: (Attribute | Function | Constant)[],
-    treePath: string
-  ) => {
-    const functionTree: PreviewFunctionTreeType[] = [];
-    inputColumns.forEach((inputColumn, index) => {
-      if ('InputColumns' in inputColumn) {
-        functionTree.push(
-          ...getTreeForFunction(inputColumn, `${treePath}/${inputColumn?.id}`)
-        );
-      } else {
-        functionTree.push(
-          ...getTreeForAttribute(
-            inputColumn,
-            `${treePath}/${index}-${inputColumn?.Path}`
-          )
-        );
-      }
-    });
-    return functionTree;
-  };
-  /*
-      if params are an object:
-      lookupFields: {lookup_table: 'currency', lookup_value: '4'},
-      
-
-      Paths should be:
-
-      Condition/LookupFields
-      Condition/LookupFields/lookup_table
-      Condition/LookupFields/lookup_value
-
-      if params are an array:
-      lookupFields: [
-        {lookup_table: 'currency', lookup_value: '4'},
-        {lookup_table: 'currency', lookup_value: '4'},
-        {lookup_table: 'currency', lookup_value: '4'}
-      ]
-
-      Paths should be:
-
-      Condition/LookupFields
-      Condition/LookupFields/lookup_table-0
-      Condition/LookupFields/lookup_value-0
-      Condition/LookupFields/lookup_table-1
-      Condition/LookupFields/lookup_value-1
-      Condition/LookupFields/lookup_table-2
-      Condition/LookupFields/lookup_value-2
-     */
-
-  const getTreeForFunctionParams = (
-    params: { [key: string]: string | number | any },
-    treePath: string,
-    index?: number
-  ) => {
-    const functionTree: PreviewFunctionTreeType[] = [];
-
-    Object.entries(params).forEach(([key, value]: [string, any]) => {
-      let assignValue: boolean = true,
-        path: string;
-
-      if (Array.isArray(value) || (value != null && typeof value === 'object'))
-        assignValue = false;
-
-      if (index !== undefined) path = `${treePath}/${key}-${index}`;
-      else path = `${treePath}/${key}`;
-
-      functionTree.push({
-        treePath: path,
-        source: { [key]: value },
-        value: assignValue ? value : undefined,
-        type: PreviewTreeTokenType.PARAM,
-      });
-      //case value is array of objects
-      if (Array.isArray(value)) {
-        value = value.flat(Infinity);
-        value?.forEach((val: Object, index: number) => {
-          if (typeof val === 'object')
-            functionTree.push(
-              ...getTreeForFunctionParams(val, `${treePath}/${key}`, index)
-            );
-        });
-      }
-      //case of object value
-      else if (value != null && typeof value === 'object') {
-        functionTree.push(
-          ...getTreeForFunctionParams(value, `${treePath}/${key}`)
-        );
-      }
-    }); 
-    return functionTree;
-  };
-
-  const getTreeForNull = (treePath: string) => {
-    const functionTree: PreviewFunctionTreeType[] = [];
-    functionTree.push({
-      treePath,
-      source: 'NULL',
-      type: PreviewTreeTokenType.NULL,
-    });
-    return functionTree;
-  };
   
 ```
 Hopefully, you get the idea. Now we will call this hook in our `FunctionTree` component:
@@ -497,7 +390,10 @@ const FunctionTree = ({ open }: { open: boolean }) => {
  //other code...
 };
 ```
-The above logic will construct the tree paths for us. But we also need logic for what to display in each row of the tree. 
+The above logic will construct the tree paths for us:
+![Tree Paths logged](../images/treepaths.png)
+
+But we also need logic for what to display in each row of the tree. 
 
 We have defined the following types of tokens that we will be catering:
 
@@ -522,6 +418,8 @@ ELSECONDITION  =  'elseCondition',
 ```
 
 > Remember that each row, when collapsed, will show the whole expression (in a compressed form) that is formed down its tree. But when we expand a row, it only shows the token at its current tree path, be that a function, attribute, bracket or any other.
+
+![Expression expanded and Collapsed](../images/expandcollapse.gif)
 
 Therefore, aside from creating the tree path hierarchy for the data-grid, we also need a way to calculate what we display on each row, when collapsed and when expanded.  For that, we will add a second capability to our hook `useConstructFunctionTree`, that is, computing the token chain for each row. Here is the main function for that:
 ```typescript
@@ -612,181 +510,466 @@ Therefore, aside from creating the tree path hierarchy for the data-grid, we als
 };
 ```
 You can get an idea just from the function above how we are using the same recursive approach we used to construct the tree here as well. Exactly what we do in each subfunction is not hard to guess once you get the big picture.
-Still, for clarity, I will add some of the sub-functions as well:
+
+Now we are approaching the main part of this project. That is, how do we leverage the data-grid component to show the expressions. The `renderCell` method of the data-grids `groupingColDef` allows you to render any JSX inside a cell. That is key for our use case. So, we will first make small components for each token type to render inside cells. For brevity, I have included only 2 such components:
 
 ```typescript
- const constructTokenArrayForLeafEntity = (inputNode: {
-    source?: Attribute | Constant | string | { [key: string]: any };
-    type: PreviewTreeTokenType;
-  }) => {
-    const tokenArray: (PreviewToken | PreviewFunctionToken)[] = [];
-    let node = inputNode?.source;
-    const type = inputNode?.type;
-
-    if (node) {
-      if (typeof node === 'string') {
-        //case of expression operator
-        tokenArray.push({
-          name: node,
-          type: type,
-        });
-      } else {
-        //Attribute, Constant, Param
-        let name = node?.Name;
-        if (type === PreviewTreeTokenType.PARAM) {
-          name = Object.keys(node)?.[0];
-        }
-        tokenArray.push({
-          name: name,
-          ...(type !== PreviewTreeTokenType.PARAM && { dataType: node?.Type }),
-          type: type,
-        });
-      }
-    } else {
-      //Closing Bracket, Ellipses, Assign, Opening Bracket and other Token Types
-      tokenArray.push({
-        type: type,
-      });
-    }
-    return tokenArray;
-  };
-
-  const constructTokenArrayForIfConditions = (
-    isExpanded: boolean = false,
-    type:
-      | PreviewTreeTokenType.IFCONDITION
-      | PreviewTreeTokenType.ELSEIFCONDITION
-      | PreviewTreeTokenType.ELSECONDITION,
-    node?: IfBlock
-  ) => {
-    const tokenArray: (PreviewToken | PreviewFunctionToken)[] = [];
-    tokenArray?.push(
-      {
-        type: type,
-      },
-      {
-        type: PreviewTreeTokenType.OPENING_BRACKET,
-      }
-    );
-
-    if (!isExpanded) {
-      if (
-        type === PreviewTreeTokenType.IFCONDITION ||
-        type === PreviewTreeTokenType.ELSEIFCONDITION
-      ) {
-        if (node?.ConditionType == 'function') {
-          tokenArray?.push(
-            {
-              type: (node?.Condition as Function)?.Type,
-              name: (node?.Condition as Function)?.Name,
-              depthLevel: 1,
-            },
-            {
-              type: PreviewTreeTokenType.OPENING_BRACKET,
+export const FunctionToken = ({ label, showIcon }: FunctionTokenProps) => {
+  return (
+    <BoxComponent sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      {showIcon && (
+        <BoxComponent
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '14px',
+            height: '14px',
+            flexShrink: 0,
+          }}
+        >
+          <img src={functionIcon} alt="Function Icon" />
+        </BoxComponent>
+      )}
+      <TooltipComponent title={label} {...TOOLTIP_STYLES}>
+        <BoxComponent>
+          <ChipComponent
+            label={
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '150px',
+                  display: 'inline-block',
+                }}
+              >
+                {label}
+              </span>
             }
-          );
-          tokenArray?.push(
-            ...constructTokenArrayForFunctionInputs(
-              node?.Condition as Function,
-              1
-            )
-          );
-          tokenArray.push({
-            type: PreviewTreeTokenType.CLOSING_BRACKET,
-          });
-        } else {
-          tokenArray.push(
-            ...constructTokenArrayForExpression(
-              false,
-              false,
-              node?.Condition as ExpressionTree
-            )
-          );
-        }
-      }
+            sx={{
+              background: '#E6F7FE',
+              color: '#00AEEF',
+              border: 'none',
+              borderRadius: '4px',
+              fontFamily: '"Open Sans"',
+              fontSize: '13px',
+              fontWeight: 400,
+              lineHeight: '18px',
+              height: '26px',
+              textTransform: 'uppercase',
+              '& .MuiChip-label': { padding: '4px 8px' },
+            }}
+          />
+        </BoxComponent>
+      </TooltipComponent>
+    </BoxComponent>
+  );
+};
 
-      tokenArray.push(...getTokensForThenBlock(true, false));
-      tokenArray.push({
-        type: PreviewTreeTokenType.CLOSING_BRACKET,
-      });
-    }
-
-    return tokenArray;
-  };
-
-  const constructTokenArrayForExpression = (
-    inputsHidden: boolean,
-    isExpanded: boolean = false,
-    expression?: ExpressionTree,
-    maxInputsToShow: number = 2
-  ) => {
-    const tokenArray: (PreviewToken | PreviewFunctionToken)[] = [];
-    tokenArray.push(
-      {
-        type: PreviewTreeTokenType.EXPRESSION,
-      },
-      {
-        type: PreviewTreeTokenType.OPENING_BRACKET,
-      }
-    );
-    if (!isExpanded) {
-      if (!inputsHidden) {
-        const expressionTree = expression;
-        if (expressionTree?.length) {
-          expressionTree
-            ?.slice(0, maxInputsToShow)
-            ?.forEach((expression: Expression, index: number) => {
-              if (expression?.Operator && expression?.Operator !== '()')
-                tokenArray.push({
-                  name: expression?.Operator,
-                  type: PreviewTreeTokenType.EXPRESSION_OPERATOR,
-                });
-              if (expression?.ExpressionType === 'function') {
-                tokenArray.push(
-                  ...getTokensForFunctionWithHiddenInputs(
-                    expression?.ExpressionNode as Function
-                  )
-                );
-              } else if (expression?.ExpressionType === 'attribute') {
-                tokenArray.push(
-                  ...constructTokenArrayForLeafEntity({
-                    source: expression?.ExpressionNode as Attribute,
-                    type: PreviewTreeTokenType.ATTRIBUTE,
-                  })
-                );
-              } else if (expression?.ExpressionType === 'constant') {
-                tokenArray.push(
-                  ...constructTokenArrayForLeafEntity({
-                    source: expression?.ExpressionNode as Constant,
-                    type: PreviewTreeTokenType.CONSTANT,
-                  })
-                );
-              } else {
-                tokenArray.push(
-                  ...constructTokenArrayForExpression(true, false)
-                );
-              }
-            });
-          if (expressionTree?.length > maxInputsToShow) {
-            tokenArray.push({
-              type: PreviewTreeTokenType.ELLIPSES,
-            });
-          }
-        }
-      }
-      if (inputsHidden) {
-        tokenArray.push({
-          type: PreviewTreeTokenType.ELLIPSES,
-        });
-      }
-      tokenArray.push({
-        type: PreviewTreeTokenType.CLOSING_BRACKET,
-      });
-    }
-
-    return tokenArray;
-  };
-
+export const FunctionInputToken = ({
+  label,
+  backgroundColor,
+  icon,
+}: FunctionInputTokenProps) => {
+  return (
+    <BoxComponent sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <TooltipComponent title={label} {...TOOLTIP_STYLES}>
+        <BoxComponent>
+          <ChipComponent
+            label={
+              <BoxComponent
+                sx={{
+                  display: 'flex',
+                  padding: '2px 4px',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '4px',
+                  maxWidth: '120px',
+                }}
+              >
+                <BoxComponent
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#323E4D',
+                    width: '12px',
+                    height: '12px',
+                    flexShrink: 0,
+                    fontSize: '8px',
+                    fontWeight: 400,
+                    '& svg': { width: '100%', height: '100%' },
+                  }}
+                >
+                  {icon}
+                </BoxComponent>
+                <span
+                  style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label}
+                </span>
+              </BoxComponent>
+            }
+            sx={{
+              background: backgroundColor,
+              color: '#323E4D',
+              border: 'none',
+              borderRadius: '4px',
+              fontFamily: '"Open Sans"',
+              fontSize: '13px',
+              fontWeight: 400,
+              lineHeight: '18px',
+              height: '26px',
+              '& .MuiChip-label': { padding: 0 },
+            }}
+          />
+        </BoxComponent>
+      </TooltipComponent>
+    </BoxComponent>
+  );
+};
 ```
+Next, we need a mechanism to render chains of these tokens in a cell as well. So we will make a component for that as well:
+```typescript
+export const FunctionTreeToken = ({
+  token,
+}: {
+  token: PreviewToken | PreviewFunctionToken;
+}) => {
+  switch (token?.type) {
+    case FunctionType.FUNCTION:
+    case FunctionType.OPERATOR:
+      return (
+        <FunctionToken label={token?.name} showIcon={token?.depthLevel === 0} />
+      );
+    case PreviewTreeTokenType.ATTRIBUTE:
+      return (
+        <FunctionInputToken
+          label={token?.name as string}
+          backgroundColor={'#E6EEF5'}
+          icon={getRowIcon(RowTypes.ATTRIBUTE, token?.dataType as any)}
+        />
+      );
+    case PreviewTreeTokenType.CONSTANT:
+      return (
+        <FunctionInputToken
+          label={'User Defined'}
+          backgroundColor={'#F0F9ED'}
+          icon={getRowIcon(RowTypes.ATTRIBUTE, token?.dataType as any)}
+        />
+      );
+    case PreviewTreeTokenType.PARAM:
+      return (
+        <FunctionInputToken
+          label={token?.name as string}
+          backgroundColor={'#FAE6E6'}
+          icon={<DataObjectIcon />}
+        />
+      );
+    case PreviewTreeTokenType.IFCONDITION:
+      return <FunctionToken label={'If'} />;
+    case PreviewTreeTokenType.ELSEIFCONDITION:
+      return <FunctionToken label={'Else If'} />;
+    case PreviewTreeTokenType.ELSECONDITION:
+      return <FunctionToken label={'Else'} />;
+    case PreviewTreeTokenType.THEN:
+      return <FunctionToken label={'Then'} />;
+    case PreviewTreeTokenType.EXPRESSION:
+      return <FunctionToken label={'Expression'} />;
+    case PreviewTreeTokenType.OPENING_BRACKET:
+    case PreviewTreeTokenType.CLOSING_BRACKET:
+    case PreviewTreeTokenType.ELLIPSES:
+    case PreviewTreeTokenType.FUNCTION_ELLIPSES:
+    case PreviewTreeTokenType.ASSIGN:
+      return <SpecialToken type={token?.type} />;
+    case PreviewTreeTokenType.EXPRESSION_OPERATOR:
+      return <SpecialToken type={token?.type} name={token?.name as string} />;
+  }
+};
 
-Now we are approaching the main part of this project. That is, how do we leverage the data-grid component to show the expressions. 
+export const FunctionTreeTokenChain = ({
+  tokenChain,
+}: {
+  tokenChain: (PreviewToken | PreviewFunctionToken)[];
+}) => {
+  return (
+    <BoxComponent sx={{ display: 'flex', flexDirection: 'row', gap: '5px' }}>
+      {tokenChain?.map(token => (
+        <FunctionTreeToken token={token}/>
+      ))}
+    </BoxComponent>
+  );
+};
+```
+Hopefully, this all makes sense till now. Next,  we need to pass the required *token array* to our token chain component inside the ```renderCell``` method. For that, we will make use of the ```constructTokenArray``` function we exposed from our hook:
+
+```typescript
+const { constructTree: constructFunctionTree, constructTokenArray } = useConstructFunctionTree();
+//other code..
+const groupingColDef: DataGridProProps['groupingColDef'] = {
+    headerName: 'Transformation'.toUpperCase(),
+    flex: 2,
+    //we calculate the token chain (based on the expansion state of the row node)
+    //and return it from the valueGetter so it can be recieved in renderCell
+    valueGetter: (params: GridValueGetterParams) => {
+      const tokenChain = constructTokenArray(
+        { source: params?.row?.source, type: params?.row?.type },
+        params?.rowNode?.childrenExpanded
+      );
+      return { tokenChain, type: params?.row?.type };
+    }, 
+  }
+```
+There is a small complication, however. When we use the ```renderCell``` prop to render the cell, we have to completely define ourselves what is to be rendered in an empty cell. This means that for ```tree Data```, the expansion and collapse button that appears by default in grouping column cells, will also not be present when we use ```renderCell```. You can read more about this in [this github issue](https://github.com/mui/mui-x/issues/13400#issuecomment-2154388702). Luckily, there is a workaround for this issue, which is to render a custom grouping column cell rendering our own expand and collapse button. So that is exactly what we will do:
+```typescript
+const FunctionTreeCustomGroupingColumnCell = ({
+  params,
+  treeApiRef,
+}: {
+  params: GridRenderCellParams;
+  treeApiRef: React.MutableRefObject<GridApiPro>;
+}) => {
+  const DEFAULT_INDENT = 4;
+  const { id, field, rowNode, value } = params;
+  const filteredDescendantCountLookup = useGridSelector(
+    treeApiRef,
+    gridFilteredDescendantCountLookupSelector
+  );
+  const filteredDescendantCount =
+    filteredDescendantCountLookup[rowNode.id] ?? 0;
+  const indentLeft =
+    value?.type === PreviewTreeTokenType.CLOSING_BRACKET
+      ? DEFAULT_INDENT * rowNode?.depth - DEFAULT_INDENT
+      : DEFAULT_INDENT * rowNode?.depth;
+
+  const handleClick = (event: any) => {
+    treeApiRef.current.setRowChildrenExpansion(id, !rowNode.childrenExpanded);
+    treeApiRef.current.setCellFocus(id, field);
+    event.stopPropagation();
+  };
+
+  return (
+    <BoxComponent
+      ml={indentLeft}
+      sx={{ display: 'flex', flexDirection: 'row' }}
+    >
+      <BoxComponent sx={{ width: '28px', mr: '0.5rem' }}>
+        {filteredDescendantCount > 1 && (
+          <IconButton onClick={handleClick} size="small" disableRipple sx={{}}>
+            <ExpandMoreIcon
+              sx={{
+                transform:
+                  'childrenExpanded' in rowNode && rowNode.childrenExpanded
+                    ? 'none'
+                    : 'rotate(270deg)',
+                width: '16px',
+                height: '16px',
+              }}
+            />
+          </IconButton>
+        )}
+      </BoxComponent>
+      <FunctionTreeTokenChain tokenChain={value?.tokenChain} />
+    </BoxComponent>
+  );
+};
+``` 
+Now we can use this in the ```renderCell``` prop of our ```groupingColDef```:
+```typescript
+const  apiRef  =  useGridApiRef();
+//other code...
+const groupingColDef: DataGridProProps['groupingColDef'] = {
+    headerName: 'Transformation'.toUpperCase(),
+    flex: 2,
+    valueGetter: (params: GridValueGetterParams) => {
+      const tokenChain = constructTokenArray(
+        { source: params?.row?.source, type: params?.row?.type },
+        params?.rowNode?.childrenExpanded
+      );
+      return { tokenChain, type: params?.row?.type };
+    },
+    //here it is:
+    renderCell: (params: GridRenderCellParams) => (
+      <FunctionTreeCustomGroupingColumnCell
+        params={params}
+        treeApiRef={apiRef}
+      />
+    ),
+  };
+```
+And that is about it! There is some extra stuff, for example, rendering the custom arrow toggle buttons in the grid header, but I will just put the whole ```FunctionTree``` Component definition for you to see how everything is put together finally:
+```typescript
+const FunctionTree = ({ open }: { open: boolean }) => {
+  const apiRef = useGridApiRef();
+  const mappingJson = useSelector(
+    (state: RootState) => state?.DataFlow?.mapping?.mappingJson
+  );
+  const sampleData = useSelector(
+    (state: RootState) => state?.DataFlow?.sampleData?.data
+  );
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState<number>(0);
+  const [functionTree, setFunctionTree] = useState<PreviewFunctionTreeType[]>(
+    []
+  );
+  
+  const { constructTree: constructFunctionTree, constructTokenArray } =
+    useConstructFunctionTree();
+
+  // Transform Preview uses transform_preview.wasm (Go WASM) only — it does not
+  // touch SQLite, so do not gate on the SharedWorker SQLite readiness signal.
+  const transformWasm = useTransformWasmStatus();
+  const engineReady = transformWasm.ready;
+  const engineError = transformWasm.error;
+
+
+  const fetchMappingResultsOnSampleData = async (
+    sampleData: any[],
+    recordNumber: number,
+    mappingJson: Mapping[]
+  ) => {
+    try {
+      let res = null;
+      let fetchedData: Mapping[] = [];
+      setLoading(true);
+      console.log('mappingJson: ', mappingJson);
+      res = await loadWasmAndProcess({
+        mappingJson: mappingJson,
+        sampleData: [sampleData[recordNumber]],
+      });
+      fetchedData = res?.data;
+      const tree: PreviewFunctionTreeType[] =
+        constructFunctionTree(fetchedData);
+      setFunctionTree(tree);
+    } catch (error: any) {
+      console.error('Error fetching values for transforms:', error);
+      notification.error({ message: `Error fetching values for transforms` });
+      const tree: PreviewFunctionTreeType[] =
+        constructFunctionTree(mappingJson);
+      setFunctionTree(tree);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (sampleData && mappingJson && open) {
+      fetchMappingResultsOnSampleData(sampleData, page, mappingJson);
+    }
+  }, [sampleData, mappingJson, page, open, engineReady]);
+
+  const customPreviewValueColumnHeader = () => {
+    const sampleDataLength = sampleData?.length;
+    const upperBound = (sampleDataLength ?? 50)-1;
+    const lowerBound = 0
+
+    const setPageNext = () => {
+      if (page <= upperBound) {
+        setPage(page + 1);
+      }
+    };
+    const setPagePrevious = () => {
+      if (page > lowerBound) {
+        setPage(page - 1);
+      }
+    };
+    
+    return (
+      <BoxComponent
+        sx={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          flex: 1,
+        }}
+      >
+        <span style={{ fontSize: '0.75rem', fontWeight: '700' }}>VALUES</span>
+        <BoxComponent>
+          <IconButton
+            disableRipple
+            disabled={page <= lowerBound}
+            onClick={setPagePrevious}
+          >
+            <img
+              src={page <= lowerBound || mappingJson?.length === 0? ForwardIconDisabled : ForwardIcon}
+              style={{ transform: 'rotate(180deg)' }}
+              alt='page previous'
+            />
+          </IconButton>
+          <IconButton disableRipple disabled={page >= upperBound} onClick={setPageNext}>
+            <img src={page >= upperBound  || mappingJson?.length === 0? ForwardIconDisabled : ForwardIcon} alt='page next'/>
+          </IconButton>
+        </BoxComponent>
+      </BoxComponent>
+    );
+  };
+
+  const columns: GridColDef[] = [
+    {
+      field: 'value',
+      flex: 1,
+      disableColumnMenu: true,
+      filterable: false,
+      sortable: false,
+      renderHeader: customPreviewValueColumnHeader,
+      renderCell: (params: GridRenderCellParams) => {
+          return <SpecialValue value={params?.row?.value}/>
+      },
+    }
+  ];
+
+  const groupingColDef: DataGridProProps['groupingColDef'] = {
+    headerName: 'Transformation'.toUpperCase(),
+    flex: 2,
+    valueGetter: (params: GridValueGetterParams) => {
+      const tokenChain = constructTokenArray(
+        { source: params?.row?.source, type: params?.row?.type },
+        params?.rowNode?.childrenExpanded
+      );
+      return { tokenChain, type: params?.row?.type };
+    },
+    renderCell: (params: GridRenderCellParams) => (
+      <FunctionTreeCustomGroupingColumnCell
+        params={params}
+        treeApiRef={apiRef}
+      />
+    ),
+  };
+
+  return (
+    <EngineStateGate ready={engineReady} loading={!engineReady && !engineError} error={engineError}>
+      <TreeComponent
+        apiRef={apiRef}
+        rows={functionTree ?? []}
+        columns={columns}
+        groupingColDef={groupingColDef}
+        getRowId={(row: PreviewFunctionTreeType) => row?.treePath}
+        getTreeDataPath={(row: PreviewFunctionTreeType) =>
+          row?.treePath?.split('/')
+        }
+        loading={loading}
+        headerHeight={45}
+        autoHeight={false}
+        isRowSelectable={() => false}
+        treeViewStyles={FunctionTreeStyles.previewTreeStyles}
+        components={{
+          NoRowsOverlay: () => (
+              <NoRowsOverlay
+              message="Create a Mapping to see preview"
+              styles={{
+                  position: 'absolute',
+              }}
+              />
+          ),
+      }}
+      />
+    </EngineStateGate>
+  );
+```
+Here is how the final component works in a [detailed example](https://jumpshare.com/share/ywJv4aqoTPlhw8BUoQzs).
+Hope this was an informative blog about how the ```data-grid-pro``` component of MUI can be customized for an advanced and unconventional use case. Until Next time. Allah Hafiz!
