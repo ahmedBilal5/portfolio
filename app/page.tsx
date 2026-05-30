@@ -4,7 +4,8 @@ import RecentPosts from "./_components/recentPosts";
 import { featuredWorks, recentPosts } from "./constants";
 
 export default function Portfolio() {
-  return <div className="md:mt-16.5 mt-7 ">
+  return (
+    <div className="md:mt-16.5 mt-7 flex-grow-1">
       <HeroSection
         name="John"
         title="Creative Technologist"
@@ -16,10 +17,12 @@ export default function Portfolio() {
           console.log("Resume downloaded");
         }}
       />
-      <RecentPosts
-        posts={recentPosts}
-        maxPosts={3}
+      <RecentPosts posts={recentPosts} maxPosts={3} />
+      <FeaturedWorks
+        title={"Featured Works"}
+        maxWorks={4}
+        works={featuredWorks}
       />
-      <FeaturedWorks title={"Featured Works"} maxWorks={4} works={featuredWorks}/>    
-  </div>
+    </div>
+  );
 }

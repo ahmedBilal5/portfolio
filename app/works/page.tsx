@@ -4,7 +4,7 @@ import { featuredWorks, recentPosts } from "../constants";
 
 export default function Works() {
   return (
-    <>
+    <div className="flex-grow">
       <h1 className="dark:text-white text-3xl md:text-4xl font-extrabold leading-tight sm:leading-[70px] text-left my-5">
         Works
       </h1>
@@ -36,6 +36,6 @@ export default function Works() {
           No recent posts available.
         </div>
       )}
-    </>
+    </div>
   );
 }
