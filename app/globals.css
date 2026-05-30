@@ -14,7 +14,7 @@
   --color-font-dark: hsl(234, 30%, 82%);
   --color-hover: hsl(210,20%,98%);
   --max-width-sections: 1404px;
-  --max-width-blog: 1100px;
+  --max-width-blog: 900px;
   
 }
 @layer base {

@@ -54,14 +54,14 @@ const NavBar = () => {
       {/* Hamburger Icon (hidden on md and up) */}
       <label
         htmlFor="menu-toggle"
-        className="z-60 flex flex-col justify-between w-8 h-6 cursor-pointer md:hidden
+        className=" mr-2 z-60 flex flex-col justify-between w-5 h-4 cursor-pointer md:hidden
                             peer-checked:[&>span:nth-child(1)]:rotate-45 
                             peer-checked:[&>span:nth-child(2)]:scale-y-0 
                             peer-checked:[&>span:nth-child(3)]:-rotate-45"
       >
-        <span className="block h-1 bg-font rounded transition-transform duration-300 origin-top-left"></span>
-        <span className="block h-1 bg-font rounded transition-transform duration-200"></span>
-        <span className="block h-1 bg-font rounded transition-transform duration-300 origin-bottom-left"></span>
+        <span className="block h-0.75 bg-font rounded transition-transform duration-300 origin-top-left"></span>
+        <span className="block h-0.75 bg-font rounded transition-transform duration-200"></span>
+        <span className="block h-0.75 bg-font rounded transition-transform duration-300 origin-bottom-left"></span>
       </label>
     </div>
     </section>
