@@ -1,19 +1,20 @@
 import BlogPostCard from "../_components/blogPostCard";
-import { recentPosts } from "../constants";
+import { getAllPosts } from "./_utils/getAllPosts";
 
-export default function BlogPosts(){
+export default async function BlogPosts(){
+    const posts = await getAllPosts();
     return <>
     <h1 className="dark:text-white text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight sm:leading-[70px] text-center md:text-left my-5">
               Blog
     </h1>
-    {recentPosts.map((post) => (
+    {posts.map((post) => (
               <BlogPostCard
-                key={post.id}
+                key={post.slug}
                 title={post.title}
-                date={post.date}
+                date={post.publishDate}
                 tags={post.tags}
-                description={post.description}
-                href={post.href || `/blog/${post.id}`}
+                description={post.excerpt}
+                href={`/blog/${post.slug}`}
                 display="outline"
                 className="max-w-full"
               />

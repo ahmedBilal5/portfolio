@@ -18,6 +18,8 @@ export type PostMetadata = {
   excerpt: string;
   tags: string[];
   seo: SEO;
+  type: 'work' | 'blog'
+  featured: boolean
 };
 export type Post = PostMetadata & {
   slug: string;
