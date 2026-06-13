@@ -26,9 +26,9 @@ export type Post = PostMetadata & {
   content: MDXContent;
 };
 
-export async function getPost(slug: string): Promise<Post | null> {
+export async function getPost(category: 'works' | 'blogs', slug: string): Promise<Post | null> {
   try {
-    const post = await import(`../../../../public/posts/${slug}.mdx`);
+    const post = await import(`../../../../public/posts/${category}/${slug}.mdx`);
     return {
       slug,
       ...post.metadata,

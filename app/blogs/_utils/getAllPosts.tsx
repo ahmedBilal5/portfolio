@@ -2,8 +2,8 @@ import { readdir } from "fs/promises";
 import path from "path";
 import { Post } from "../../blog/[slug]/_utils/getPost";
 
-export async function getAllPosts() {
-  const postsPath = path.join(process.cwd(), "public/posts");
+export async function getAllPosts(type: 'works' | 'blogs'): Promise<Post[]> {
+  const postsPath = path.join(process.cwd(), `public/posts/${type}`);
 
   // Get all MDX files
   const files = (await readdir(postsPath, { withFileTypes: true }))
@@ -14,7 +14,7 @@ export async function getAllPosts() {
   const posts = await Promise.all(
     files.map(async (filename) => {
       const slug = filename.replace(/\.mdx$/, ""); // Remove .mdx extension to get slug
-      const { metadata } = await import(`../../../public/posts/${filename}`);
+      const { metadata } = await import(`../../../public/posts/${type}/${filename}`);
       return { slug, ...metadata };
     }),
   );

@@ -1,17 +1,20 @@
 import FeaturedWorks from "./_components/featuredWorks";
 import HeroSection from "./_components/hero";
 import RecentPosts from "./_components/recentPosts";
+import ProfilePicture from "../public/images/profilePicture.jpeg";
 import { featuredWorks, recentPosts } from "./constants";
 
 export default function Portfolio() {
+  const experienceYears = new Date().getFullYear() - 2023;
+
   return (
     <div className="md:mt-16.5 mt-7 flex-grow-1">
       <HeroSection
-        name="John"
-        title="Creative Technologist"
-        description="Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet sint. Velit officia consequat duis enim velit mollit. Exercitation veniam consequat sunt nostrud amet."
+        name="Ahmed"
+        title="Software Engineer"
+        description={`Engineer with ${experienceYears} years of experience in software development across multiple domains. Passionate about meaningful and ethical work that serves a noble purpose. Sometimes, I blog about tit-bits from my work. `}
         buttonText="Download Resume"
-        imageUrl="https://placehold.co/284x284"
+        imageUrl={ProfilePicture.src}
         buttonOnClick={async () => {
           "use server";
           console.log("Resume downloaded");

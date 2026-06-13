@@ -41,7 +41,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="order-2 md:order-1 flex-1">
           <div className="mb-4">
             <h1 className="dark:text-white text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight sm:leading-[70px] text-center md:text-left">
-              Hi, I am {name},
+              Salam 🤲, I am {name},
               <br />
               {title}
             </h1>
