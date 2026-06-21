@@ -10,15 +10,15 @@ const NavBar = () => {
   const navItems = [
     {
       title: "Works",
-      href: "",
+      href: "works",
     },
     {
       title: "Blog",
-      href: "",
+      href: "blogs",
     },
     {
       title: "Contact",
-      href: "",
+      href: "/",
     },
   ];
   const navLinks = navItems.map((navItem) => (

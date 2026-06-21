@@ -1,0 +1,36 @@
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 180 180"
+  width="180"
+  height="180"
+>
+  <defs>
+    <linearGradient id="next-gradient" x1="109" y1="116" x2="145" y2="161">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="bar-gradient" x1="121" y1="54" x2="121" y2="126">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="90" cy="90" r="90" fill="#000"/>
+
+  <!-- Diagonal stroke -->
+  <path
+    d="M149.5 157.5L69.1 54H54V126H66.1V69.4L140 164.8C143.3 162.6 146.5 160.2 149.5 157.5Z"
+    fill="url(#next-gradient)"
+  />
+
+  <!-- Vertical stroke -->
+  <rect
+    x="115"
+    y="54"
+    width="12"
+    height="72"
+    fill="url(#bar-gradient)"
+  />
+</svg>

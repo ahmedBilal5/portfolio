@@ -1,7 +1,7 @@
 import BlogPostCard from "../_components/blogPostCard";
 import WorkCard from "../_components/workCard";
 import { getAllPosts } from "../blogs/_utils/getAllPosts";
-import { featuredWorks, recentPosts } from "../constants";
+
 
 export default async function Works() {
   const works = await getAllPosts('works')

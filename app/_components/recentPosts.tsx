@@ -14,7 +14,7 @@ interface RecentPostsSectionProps {
 
 const RecentPosts = ({
   title = "Recent posts",
-  viewAllLink = "/blog",
+  viewAllLink = "/blogs",
   posts = [],
   maxPosts = 2,
   className = "",
@@ -62,10 +62,10 @@ const RecentPosts = ({
         ) : (
           <div
             className="
-                    text-center 
-                    py-12 
-                    text-slate-500 
-                    text-lg
+                text-center 
+                py-12 
+                text-slate-500 
+                text-lg
                 "
           >
             No recent posts available.

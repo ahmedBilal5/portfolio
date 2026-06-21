@@ -22,7 +22,7 @@ export default function RootLayout({
 
       <body>
         <ThemeProvider enableSystem={true} defaultTheme="system">
-          <div className="w-full max-w-sections mx-auto px-4 md:px-8 flex flex-col h-screen">
+          <div className="w-full max-w-sections mx-auto px-4 md:px-8 flex flex-col min-h-screen">
             <NavBar />
             {children}
             <Footer platforms={socialPlatforms} />

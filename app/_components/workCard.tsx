@@ -28,7 +28,7 @@ const WorkCard = ({
   return (
     <Link href={href}>
       <article
-        className={`flex flex-col sm:flex-row gap-3 rounded-md  ${extraPadY ? "py-7 px-5" : "p-5"}  cursor-pointer hover:bg-hover transition-colors`}
+        className={`flex flex-col sm:flex-row gap-3 rounded-md  ${extraPadY ? "py-7 px-5" : "p-5"}  cursor-pointer hover:bg-hover transition-colors h-50 md:h-56`}
       >
         <div className="relative min-w-56 sm:w-56 lg:w-64 max-h-48 bg-black/0 rounded-md overflow-hidden flex-shrink-0">
           <img className="w-full h-full object-cover" src={imageUrl} />

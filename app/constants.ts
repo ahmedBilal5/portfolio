@@ -62,7 +62,7 @@ import { Post } from "./_components/recentPosts";
   ]
 
 export const socialPlatforms = [
-  { name: 'Linkedin', iconSrc: '/platforms/linkedin-outlined.svg', href: '' },
-  { name: 'Github', iconSrc: '/platforms/github-outlined.svg', href: '' },
-  { name: 'Stack Overflow', iconSrc: '/platforms/stackoverflow-outlined.svg', href: '' }
+  { name: 'Linkedin', iconSrc: '/platforms/linkedin-outlined.svg', href: 'https://www.linkedin.com/in/ahmed-bilal-542000w/' },
+  { name: 'Github', iconSrc: '/platforms/github-outlined.svg', href: 'https://github.com/ahmedBilal5' },
+  { name: 'Stack Overflow', iconSrc: '/platforms/stackoverflow-outlined.svg', href: 'https://stackoverflow.com/users/14379286/ahmedbilalmalik' }
 ];
