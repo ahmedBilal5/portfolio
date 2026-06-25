@@ -40,7 +40,7 @@ export default async function Portfolio() {
       <HeroSection
         name="Ahmed"
         title="Software Engineer"
-        description={`Engineer with ${experienceYears} years of experience in software development across multiple domains. Passionate about meaningful and ethical work that serves a noble purpose. Sometimes, I blog about tit-bits from my work. `}
+        description={`Engineer with ${experienceYears} years of experience in software development across multiple domains. Passionate about work that is meaningful and purposeful. Sometimes, I blog about tidbits from my work. `}
         buttonText="Download Resume"
         imageUrl={ProfilePicture.src}
         buttonOnClick={async () => {

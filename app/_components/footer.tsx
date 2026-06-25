@@ -12,7 +12,7 @@ const Footer = ({platforms}: FooterProps) => {
 const year = new Date().getFullYear();
 
   return (
-    <section className="py-4 md:py-6 my-5 sm:my-10">
+    <section className="py-4 md:py-6 my-15 sm:my-20">
         <div className=" flex flex-col gap-4 items-center justify-center ">
             <div className="flex flex-row gap-4 items-center justify-center">
                 {platforms.map((platform) => (

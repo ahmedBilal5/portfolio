@@ -7,7 +7,7 @@ export default async function Works() {
   const works = await getAllPosts('works')
   return (
     <div className="flex-grow">
-      <h1 className="dark:text-white text-3xl md:text-4xl font-extrabold leading-tight sm:leading-[70px] text-left my-5">
+      <h1 className="dark:text-white text-3xl md:text-4xl font-extrabold leading-tight sm:leading-[70px] text-center md:text-left my-5">
         Works
       </h1>
       {works.length > 0 ? (

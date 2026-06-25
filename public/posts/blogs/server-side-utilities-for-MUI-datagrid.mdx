@@ -1,0 +1,805 @@
+export const metadata = {
+  title: "Server Side utilities for MUI data-grid",
+  publishDate: "2026-05-20",
+  lastModified: "2026-05-20",
+  excerpt: "A comparison of two utility classes that enable backend integration with the frontend MUI data-grid for server-side data",
+  tags: ["typescript", "mui", "data-grid", "server-side", "sql"],
+  type: 'blog',
+  featured: true
+};
+
+
+While I was replacing MUI `data-grid`s with server side lazy loaded `data-grid`s across a project at work, It quickly became obvious that I would need the appropriate functionality on the server-side to handle the data-grids filter, sort and pagination model, not to mention, start and end parameters for server-side lazy loading and group Keys for server side tree data.
+
+The first instance of this functionality that I wrote was a class that performed all the work in memory at run-time. Here it is:
+
+> NOTE: For brevity, I will not go into the technical detail of the code step by step. That is left up to the reader.
+```typescript
+export class DataGridUtils {
+  /**
+   * Generic method to filter and sort any array of objects
+   */
+  static processWithGridParams<T>(
+    data: T[],
+    filterModel?: DataGridFilterModelInput,
+    //customFilters?: DataGridCustomFiltersInput[],
+    sortModel?: DataGridSortItemInput[],
+    paginationModel?: DataGridPaginationInput,
+    start?: number,
+    end?: number,
+    treeData?: boolean,
+    groupKeysInput?: GroupKeysInput,
+  ): {
+    data: T[];
+    totalRecords: number;
+  } {
+    let result = [...data];
+    // Apply filtering if provided
+    if (filterModel && filterModel.items.length > 0) {
+      result = this.filterData(result, filterModel, treeData, groupKeysInput);
+    }
+
+    // Apply quick filter if provided
+    if (
+      filterModel?.quickFilterValues &&
+      filterModel.quickFilterValues.length > 0
+    ) {
+      result = this.applyQuickFilter(result, filterModel.quickFilterValues);
+    }
+
+    // Apply sorting if provided
+    if (sortModel && sortModel.length > 0) {
+      result = this.sortData(result, sortModel, treeData, groupKeysInput);
+    }
+
+    if (groupKeysInput) {
+      result = this.filterBasedOnGroupKeys(result, groupKeysInput);
+    }
+
+    if (start !== undefined && end !== undefined) {
+      return this.filterBasedOnStartAndEndIndices(result, start, end);
+    }
+
+    return this.paginate(
+      result,
+      paginationModel?.page,
+      paginationModel?.pageSize,
+    );
+  }
+
+  /**
+   * Filter data based on filter model
+   * @param groupKeysInput This optional param is for the case when filtering on tree data. For that we need to make sure that if a child node passes the filter, all its parent tree is also passed
+  */
+  private static filterData<T>(
+    data: T[],
+    filterModel: DataGridFilterModelInput,
+    treeData:boolean = false,
+    groupKeysInput?: GroupKeysInput 
+  ): T[] {
+    
+    const { items, logicOperator = 'and' } = filterModel;
+
+    const filteredData= data.filter((item) => {
+      // Apply all filter items
+      const filterResults = items.map((filterItem) => {
+        if(treeData &&  groupKeysInput.groupingField && filterItem.field === '__tree_data_group__' ){
+          filterItem.field = groupKeysInput.groupingField;
+        } 
+        return this.applyFilter(item, filterItem)
+        }
+      );
+
+      // Combine results based on logic operator
+      if (logicOperator === 'and') {
+        return filterResults.every((result) => result === true);
+      } else {
+        return filterResults.some((result) => result === true);
+      }
+    });
+    if(treeData && groupKeysInput){
+        return this.addAllDirectAnscestorsToDataItems(data, filteredData, groupKeysInput);
+      }
+    return filteredData
+  }
+
+  /**
+   * Apply a single filter item to an object
+   */
+  private static applyFilter<T>(
+    item: T,
+    filter: DataGridFilterItemInput,
+  ): boolean {
+    const { field, operator, value } = filter;
+    const fieldValue = this.getNestedValue(item, field);
+    // Handle null/undefined values
+    if (fieldValue === null || fieldValue === undefined) {
+      return operator === 'isEmpty' || operator === 'isNotEmpty';
+    }
+
+    switch (operator) {
+      case GridFilterOperator['contains']:
+        return String(fieldValue)
+          .toLowerCase()
+          .includes(String(value).toLowerCase());
+
+      case GridFilterOperator['equals']:
+      case GridFilterOperator['isEqualTo']:
+        return fieldValue == value;
+
+      case GridFilterOperator['isNotEqualTo']:
+        return fieldValue != value;
+
+      case GridFilterOperator['startsWith']:
+        return String(fieldValue)
+          .toLowerCase()
+          .startsWith(String(value).toLowerCase());
+
+      case GridFilterOperator['endsWith']:
+        return String(fieldValue)
+          .toLowerCase()
+          .endsWith(String(value).toLowerCase());
+
+      case GridFilterOperator['isEmpty']:
+        return (
+          fieldValue === '' || fieldValue === null || fieldValue === undefined
+        );
+
+      case GridFilterOperator['isNotEmpty']:
+        return (
+          fieldValue !== '' && fieldValue !== null && fieldValue !== undefined
+        );
+
+      case GridFilterOperator['isAnyOf']:
+        return Array.isArray(value) && value.includes(fieldValue);
+
+      case GridFilterOperator['isGreaterThan']:
+        return fieldValue > value;
+
+      case GridFilterOperator['isGreaterThanOrEqualTo']:
+        return fieldValue >= value;
+
+      case GridFilterOperator['isLessThan']:
+        return fieldValue < value;
+
+      case GridFilterOperator['isLessThanOrEqualTo']:
+        return fieldValue <= value;
+
+      case GridFilterOperator['after']:
+        return new Date(fieldValue) > new Date(value);
+
+      case GridFilterOperator['onOrAfter']:
+        return new Date(fieldValue) >= new Date(value);
+
+      case GridFilterOperator['before']:
+        return new Date(fieldValue) < new Date(value);
+
+      case GridFilterOperator['onOrBefore']:
+        return new Date(fieldValue) <= new Date(value);
+
+      default:
+        return true;
+    }
+  }
+
+  /**
+   * Apply quick filter (search across all fields)
+   */
+  private static applyQuickFilter<T>(data: T[], searchValues: string[]): T[] {
+    if (!searchValues || searchValues.length === 0) return data;
+
+    return data.filter((item) => {
+      return searchValues.some((searchValue) => {
+        // Search across all string properties
+        return Object.keys(item as object).some((key) => {
+          const value = this.getNestedValue(item, key);
+          if (typeof value === 'string') {
+            return value.toLowerCase().includes(searchValue.toLowerCase());
+          }
+          return false;
+        });
+      });
+    });
+  }
+
+  /**
+   * Sort data based on sort model
+   */
+  private static sortData<T>(
+    data: T[],
+    sortModel: DataGridSortItemInput[],
+    treeData: boolean,
+    groupKeysInput: GroupKeysInput
+  ): T[] {
+    return [...data].sort((a, b) => {
+      for (const sort of sortModel) {
+        let { field, sort: direction } = sort;
+        if(treeData && groupKeysInput.groupingField && field === '__tree_data_group__' ){
+          field = groupKeysInput.groupingField
+        }
+
+        let aValue = this.getNestedValue(a, field);
+        let bValue = this.getNestedValue(b, field);
+
+        if(treeData && groupKeysInput.groupingField && field === groupKeysInput.groupingField ){
+          bValue = aValue.split(groupKeysInput.groupKeysDelimeter).pop()
+          bValue = aValue.split(groupKeysInput.groupKeysDelimeter).pop()
+        }
+
+        // Handle null/undefined values
+        if (aValue === null || aValue === undefined) {
+          return direction === 'asc' ? -1 : 1;
+        }
+        if (bValue === null || bValue === undefined) {
+          return direction === 'asc' ? 1 : -1;
+        }
+
+        // Compare values
+        let comparison = 0;
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          comparison = aValue.localeCompare(bValue);
+        } else if (aValue instanceof Date && bValue instanceof Date) {
+          comparison = aValue.getTime() - bValue.getTime();
+        } else {
+          comparison = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        }
+
+        // If not equal, return comparison (adjusted for direction)
+        if (comparison !== 0) {
+          return direction === 'asc' ? comparison : -comparison;
+        }
+      }
+
+      // If all sort fields are equal
+      return 0;
+    });
+  }
+
+  static addAllDirectAnscestorsToDataItems<T>(allData: T[], filteredData: T[], groupKeysInput: GroupKeysInput){
+
+    const filteredDataWithDirectAncsestors = new Map<string, T>();
+        filteredData.forEach((item) => {
+          const allSubGroups = this.getAllGroupingPathsListFromGivenPath(item, groupKeysInput);
+          const itemWithDirectAncsestors = [item, ...allData.filter(item => allSubGroups.includes(this.getNestedValue(item, groupKeysInput.groupingField)))];
+          itemWithDirectAncsestors.forEach(item => filteredDataWithDirectAncsestors.set(this.getNestedValue(item, groupKeysInput.groupingField), item));
+        })
+        return [...filteredDataWithDirectAncsestors.values()]       
+  }
+
+  /**
+   * Helper Function to return all the sub-group keys for a given groupkeys array
+   * @example object with grouping field value = 'connection1/folder1/file1.csv' with groupkeysDelimiter = '/' will return 
+   * ['connection1/folder1','connection1']
+   */
+  private static getAllGroupingPathsListFromGivenPath<T>(item: T, groupInfo: GroupKeysInput){
+    const groupingPaths: string[] = [];
+    const groupingFieldValueOfItem = this.getNestedValue(item, groupInfo.groupingField);
+    const groupingFieldSplitted = groupingFieldValueOfItem.split(groupInfo.groupKeysDelimeter);
+    for (let i = 0; i < groupingFieldSplitted.length - 1; i++) {
+      if (i === 0)
+        groupingPaths.push(groupingFieldSplitted[i]);
+      else
+        groupingPaths.push(groupingPaths[i - 1].concat(groupInfo.groupKeysDelimeter, groupingFieldSplitted[i]));
+    }
+    return groupingPaths;
+  };
+
+
+  /**
+   * Get nested property value using dot notation
+   */
+  private static getNestedValue<T>(obj: T, path: string): any {
+    if (!obj) return undefined;
+
+    const keys = path.split('.');
+    let current: any = obj;
+
+    for (const key of keys) {
+      if (current === null || current === undefined) {
+        return undefined;
+      }
+
+      // Handle array indices
+      if (key.includes('[') && key.includes(']')) {
+        const arrayMatch = key.match(/^(.+)\[(\d+)\]$/);
+        if (arrayMatch) {
+          const arrayName = arrayMatch[1];
+          const index = parseInt(arrayMatch[2], 10);
+          current = current[arrayName]?.[index];
+        }
+      } else {
+        current = current[key];
+      }
+    }
+
+    return current;
+  }
+
+  /**
+   * Paginate results
+   */
+  private static paginate<T>(
+    data: T[],
+    page?: number,
+    pageSize?: number,
+  ): { data: T[]; totalRecords: number } {
+    if (pageSize === -1 || page === undefined || pageSize === undefined)
+      return {
+        data: data,
+        totalRecords: data.length,
+      };
+
+    const startIndex = page * pageSize;
+    const endIndex = startIndex + pageSize;
+
+    return {
+      data: data.slice(startIndex, endIndex),
+      totalRecords: data.length,
+    };
+  }
+
+  private static filterBasedOnStartAndEndIndices<T>(
+    data: T[],
+    start: number,
+    end: number,
+  ): { data: T[]; totalRecords: number } {
+    return {
+      data: data.slice(start, end+1),
+      totalRecords: data.length,
+    };
+  }
+
+  private static filterBasedOnGroupKeys<T>(
+    data: T[],
+    groupInfo: GroupKeysInput,
+  ): any {
+
+    const { groupingField, groupKeysDelimeter, groupKeys } = groupInfo;
+    if (groupKeys.length) {
+      let dataFilteredByGroup: T[];
+      const groupKeysJoined = groupKeys.join(groupKeysDelimeter);
+      dataFilteredByGroup = data.filter((row) => {
+        const groupingFieldValue = this.getNestedValue(row, groupingField);
+        return (
+          groupingFieldValue.startsWith(groupKeysJoined + groupKeysDelimeter) &&
+          groupingFieldValue.split(groupKeysDelimeter).length ===
+            groupKeys.length + 1
+        ); //second condition is so we only fetch the immediate children not all levels below
+      });
+      return dataFilteredByGroup;
+    }
+
+    return data.filter(
+      (row) =>
+        !this.getNestedValue(row, groupingField).includes(groupKeysDelimeter),
+    );
+  }
+}
+```
+As you can see, it contains methods for filtering, sorting, and all of the other data-grid configuration mentioned previously. The upside of this pure typescript implementation is that it can be flexibly be used regardless of what the data source is, since all the operations are happening in memory. The downside, and a major one, is that it requires the full set of data to be loaded into memory first, which sort of defeats the purpose of lazy-loading. This problem is exacerbated by the fact that the full set of data needs to be fetched on the server for each paginated/lazy loaded call to the server, which can be a lot. However, this class can be used conveniently when the volume of data is not massive.
+
+Increasing volume of data in my project eventually led me to create a new implementation altogether in light of the drawback discussed: An implementation that does all the operations at the data source level, instead of memory. Since my data source was a Postgres relational database, the new implementation generates a sophisticated SQL query to select data from the database. I have leveraged the typeORM SelectQueryBuilder for much of this. Here is the new implementation:
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
+import { ZdpCommonDTOs } from '@zdp-pim/zdp-filter';
+import { GridFilterOperator, GridLogicOperator } from '@zdp-pim/zdp-filter';
+import { FileMetadata } from './entities/file-metadata.entity';
+import { DataSourceDto, FilePolicyFilterType } from './dto/dataSource.dto';
+import { generateRegex, parseFileSizeString } from './utils/utils';
+
+@Injectable()
+export class DatagridQueryService {
+  // Map of known relations for automatic joins
+  private relationMap: Record<string, string[]> = {};
+
+  /**
+   * Allows you to set or override the relationMap at runtime.
+   * @param map A dictionary of relation names to aliases
+   *            e.g. { schema: 'schema', dataSource: 'dataSource' }
+   */
+  setRelationMap(map: Record<string, string[]>) {
+    this.relationMap = map;
+  }
+
+  buildQuery<T>(
+    repo: Repository<T>,
+    alias: string,
+    params: ZdpCommonDTOs.DataGridParams,
+    forceJoinsMap: Map<string, string[]> = new Map(),
+  ): SelectQueryBuilder<T> {
+    const qb = repo.createQueryBuilder(alias);
+
+    // Ensure joins exist if filter/sort fields reference relations
+    this.ensureJoins(qb, alias, params, forceJoinsMap);
+
+    // 1. Filters
+    if (params.filterModel?.items?.length) {
+      const logic =
+        params.filterModel.logicOperator === GridLogicOperator.or
+          ? 'OR'
+          : 'AND';
+      const conditions: string[] = [];
+      const values: Record<string, any> = {};
+
+      params.filterModel.items.forEach((f, idx) => {
+        const { condition, params: condParams } = this.buildFilterCondition(
+          alias,
+          f,
+          `val${idx}`,
+        );
+        conditions.push(condition);
+        Object.assign(values, condParams);
+      });
+
+      qb.andWhere(conditions.join(` ${logic} `), values);
+    }
+
+    // 2. Custom filters
+    params.customFilters?.forEach((cf, idz) => {
+      const logic = cf.logicOperator === GridLogicOperator.or ? 'OR' : 'AND';
+      const conditions: string[] = [];
+      const values: Record<string, any> = {};
+
+      cf.items.forEach((f, idx) => {
+        const { condition, params: condParams } = this.buildFilterCondition(
+          alias,
+          f,
+          `cf${idz}${idx}`,
+        );
+        conditions.push(condition);
+        Object.assign(values, condParams);
+      });
+
+      qb.andWhere(conditions.join(` ${logic} `), values);
+    });
+
+    // 3. Sorting
+    params.sortModel?.forEach((s) => {
+      const { targetAlias, column } = this.parseField(s.field, alias);
+      qb.addOrderBy(
+        `${targetAlias}.${column}`,
+        s.sort.toUpperCase() as 'ASC' | 'DESC',
+      );
+    });
+
+    // 4. Pagination / lazy loading
+    if (
+      params.paginationModel?.pageSize &&
+      params.paginationModel.pageSize > 0
+    ) {
+      qb.take(params.paginationModel.pageSize);
+      qb.skip(params.paginationModel.page * params.paginationModel.pageSize);
+    } else if (params.start !== undefined && params.end !== undefined) {
+      qb.skip(params.start);
+      qb.take(params.end - params.start);
+    }
+
+    return qb;
+  }
+
+  buildQueryForTree<T>(
+    repo: Repository<T>,
+    alias: string,
+    tableName: string,
+    params: ZdpCommonDTOs.DataGridParams,
+    forceJoinsMap: Map<string, string[]> = new Map(),
+  ): SelectQueryBuilder<T> {
+    const qb = repo.createQueryBuilder(alias);
+
+    const groupingField = params.groupKeysInput?.groupingField ?? 'path';
+    const delimiter = params.groupKeysInput?.groupKeysDelimeter ?? '/';
+    const groupKeys = params.groupKeysInput?.groupKeys ?? [];
+
+    this.ensureJoins(qb, alias, params, forceJoinsMap);
+
+    // 1. GroupKeys logic
+    if (groupKeys.length === 0) {
+      qb.andWhere(`${alias}.${groupingField} NOT LIKE :delim`, {
+        delim: `%${delimiter}%`,
+      });
+    } else {
+    
+      const prefix = groupKeys.join(delimiter);
+      qb.andWhere(`${alias}.${groupingField} ~ :prefix`, {
+        prefix: `^${prefix}${delimiter}[^/]+$`,
+      });
+    }
+
+    // 2. Filters
+    const filterConditions: string[] = [];
+    const filterParams: Record<string, any> = {};
+    let idx = 0;
+
+    if (params.filterModel?.items?.length) {
+      const logic =
+        params.filterModel.logicOperator === GridLogicOperator.or
+          ? 'OR'
+          : 'AND';
+      const conditions: string[] = [];
+      params.filterModel.items.forEach((f) => {
+        const { condition, params: condParams } = this.buildFilterCondition(
+          alias,
+          f,
+          `val${idx++}`,
+        );
+        conditions.push(condition);
+        Object.assign(filterParams, condParams);
+      });
+      filterConditions.push(`(${conditions.join(` ${logic} `)})`);
+    }
+
+    params.customFilters?.forEach((cf) => {
+      const logic = cf.logicOperator === GridLogicOperator.or ? 'OR' : 'AND';
+      const conditions: string[] = [];
+      cf.items.forEach((f) => {
+        const { condition, params: condParams } = this.buildFilterCondition(
+          alias,
+          f,
+          `cf${idx++}`,
+        );
+        conditions.push(condition);
+        Object.assign(filterParams, condParams);
+      });
+      filterConditions.push(`(${conditions.join(` ${logic} `)})`);
+    });
+
+    const joinedRelations: (keyof typeof this.relationMap)[]  = qb.expressionMap?.joinAttributes?.map(j => j.alias?.name);
+
+    if (filterConditions.length > 0) {
+      const combinedFilters = filterConditions.join(' AND ');
+      qb.andWhere(new Brackets(qb1 => qb1.andWhere(combinedFilters, filterParams).orWhere(qb2 => {
+        const innerAlias = 'f2'
+        const subqueryBuilder = qb2.subQuery().select('1').from(FileMetadata, innerAlias)
+        let combinedFiltersAdjusted: string = combinedFilters.replaceAll(`${alias}.`, `${innerAlias}.`);
+        for(let relation of joinedRelations){
+          const innerRelationAlias = relation+'2';
+          subqueryBuilder.leftJoin(`${innerAlias}.${relation}`, innerRelationAlias);
+          combinedFiltersAdjusted = combinedFiltersAdjusted.replaceAll(`${relation}.`, `${innerRelationAlias}.`)
+        }
+        subqueryBuilder.where(`${innerAlias}."${groupingField}" LIKE ${alias}.${groupingField} || :suffix AND ${combinedFiltersAdjusted}`, { ...filterParams, suffix: `${delimiter}%` });
+        return `EXISTS ${subqueryBuilder.getQuery()}`;
+      })))
+    }
+
+    // 3. Sorting
+    params.sortModel?.forEach((s) => {
+      const { targetAlias, column } = this.parseField(s.field, alias);
+      qb.addOrderBy(
+        `${targetAlias}.${column}`,
+        s.sort.toUpperCase() as 'ASC' | 'DESC',
+      );
+    });
+
+    // 4. Pagination
+    if (
+      params.paginationModel?.pageSize &&
+      params.paginationModel.pageSize > 0
+    ) {
+      qb.take(params.paginationModel.pageSize);
+      qb.skip(params.paginationModel.page * params.paginationModel.pageSize);
+    } else if (params.start !== undefined && params.end !== undefined) {
+      qb.skip(params.start);
+      qb.take(params.end - params.start);
+    }
+
+    return qb;
+  }
+
+  private ensureJoins<T>(
+    qb: SelectQueryBuilder<T>,
+    alias: string,
+    params: ZdpCommonDTOs.DataGridParams,
+    forceJoinsMap: Map<string, string[]> = new Map(),
+  ) {
+    const allFields = [
+      ...(params.filterModel?.items ?? []),
+      ...(params.customFilters?.flatMap((cf) => cf.items) ?? []),
+      ...(params.sortModel ?? []),
+    ];
+
+    allFields.forEach((f) => {
+      const [relation] = f.field.split('.');
+      if (this.relationMap[relation] && forceJoinsMap.has(relation)) {
+        qb.leftJoin(`${alias}.${relation}`, relation).addSelect(
+          this.relationMap[relation].map((f) => `${relation}.${f}`),
+        );
+        if (forceJoinsMap.has(relation)) forceJoinsMap.delete(relation); //removing from list as already joined
+      }
+    });
+
+    for (const [relation, fields] of forceJoinsMap) {
+      if (this.relationMap[relation]) {
+        qb.leftJoin(`${alias}.${relation}`, relation).addSelect(
+          fields.map((f) => `${relation}.${f}`),
+        );
+      }
+    }
+
+    console.log(qb.getSql());
+  }
+
+  private parseField(
+    field: string,
+    baseAlias: string,
+  ): { targetAlias: string; column: string } {
+    const parts = field.split('.');
+    if (parts.length === 1) {
+      return { targetAlias: baseAlias, column: parts[0] };
+    }
+    const [relation, ...rest] = parts;
+    return { targetAlias: relation, column: rest.join('.') };
+  }
+
+  private buildFilterCondition(
+    alias: string,
+    f: ZdpCommonDTOs.DataGridFilterItemInput,
+    paramName: string,
+  ): { condition: string; params: Record<string, any> } {
+    const { targetAlias, column } = this.parseField(f.field, alias);
+
+    // Handle JSON path (e.g. schema.configuration.input)
+    if (column.includes('.')) {
+      const parts = column.split('.');
+      const jsonColumn = parts[0]; // e.g. "configuration"
+      const jsonKeys = parts.slice(1); // e.g. ["details", "input"]
+
+      // Build Postgres JSON path: configuration->'details'->>'input'
+      const jsonPath = jsonKeys
+        .map((key, idx) =>
+          idx === jsonKeys.length - 1 ? `->>'${key}'` : `->'${key}'`,
+        )
+        .join('');
+
+      const fullExpr = `${targetAlias}.${jsonColumn}${jsonPath}`;
+
+      switch (f.operator) {
+        case GridFilterOperator.contains:
+          return {
+            condition: `${fullExpr} ILIKE :${paramName}`,
+            params: { [paramName]: `%${f.value}%` },
+          };
+        case GridFilterOperator.equals:
+        case GridFilterOperator.isEqualTo:
+          return {
+            condition: `${fullExpr} = :${paramName}`,
+            params: { [paramName]: f.value },
+          };
+        // add other operators as needed
+        default:
+          throw new Error(`Unsupported operator for JSON path: ${f.operator}`);
+      }
+    }
+
+    switch (f.operator) {
+      case GridFilterOperator.contains:
+        return {
+          condition: `${targetAlias}.${column} ILIKE :${paramName}`,
+          params: { [paramName]: `%${f.value}%` },
+        };
+      case GridFilterOperator.startsWith:
+        return {
+          condition: `${targetAlias}.${column} ILIKE :${paramName}`,
+          params: { [paramName]: `${f.value}%` },
+        };
+      case GridFilterOperator.endsWith:
+        return {
+          condition: `${targetAlias}.${column} ILIKE :${paramName}`,
+          params: { [paramName]: `%${f.value}` },
+        };
+      case GridFilterOperator.equals:
+      case GridFilterOperator.isEqualTo:
+        return {
+          condition: `${targetAlias}.${column} = :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.isNotEqualTo:
+        return {
+          condition: `${targetAlias}.${column} != :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.isGreaterThan:
+        return {
+          condition: `${targetAlias}.${column} > :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.isGreaterThanOrEqualTo:
+        return {
+          condition: `${targetAlias}.${column} >= :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.isLessThan:
+        return {
+          condition: `${targetAlias}.${column} < :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.isLessThanOrEqualTo:
+        return {
+          condition: `${targetAlias}.${column} <= :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.isEmpty:
+        return {
+          condition: `${targetAlias}.${column} IS NULL`,
+          params: {},
+        };
+      case GridFilterOperator.isNotEmpty:
+        return {
+          condition: `${targetAlias}.${column} IS NOT NULL`,
+          params: {},
+        };
+      case GridFilterOperator.isAnyOf:
+        return {
+          condition: `${targetAlias}.${column} IN (:...${paramName})`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.after:
+        return {
+          condition: `${targetAlias}.${column} > :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.onOrAfter:
+        return {
+          condition: `${targetAlias}.${column} >= :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.before:
+        return {
+          condition: `${targetAlias}.${column} < :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      case GridFilterOperator.onOrBefore:
+        return {
+          condition: `${targetAlias}.${column} <= :${paramName}`,
+          params: { [paramName]: f.value },
+        };
+      default:
+        throw new Error(`Unsupported operator: ${f.operator}`);
+    }
+  }
+``` 
+This class delivers perfectly correct results, just as the previous class. However, it eliminates the problem of fetching everything into memory first, and instead will generate a query which will fetch the final set of results right from the source. This is a major improvement. However, it has been tested to work only with a Postgres database table.
+
+### To Summarize
+
+  
+
+#### Approach A: In-memory filtering
+
+
+***Pros***
+
+- Flexible to use
+
+- Plain Typescript; easier to extend and refactor
+  
+
+***Cons***
+
+- Fetches everything into memory; not true lazy loading
+---
+
+  
+
+#### Approach B: Data source level filtering
+
+
+***Pros***
+
+- Fetches filtered data right from source as lazy loading should be ideally
+
+***Cons***
+
+- Requires a data source specific implementation; in my case SQL (Postgres)
+
+- Harder to write and extend
+---
+
+Keeping everything in view, the second implementation must be considered to be the better one since it shifts the filtering operations to the data source level and thus, keeps the point of paginated loading alive.
+
+I have focused this article on discussing the two approaches at a high level with respect to their pros and cons and have not dissected the implementations I attached. That is something I will leave up to you, the reader! 
+
+Hope this was a useful read. 
+
+Thanks for tuning in. JazakAllah u Khairan!

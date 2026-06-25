@@ -22,7 +22,7 @@ const BlogPostCard = ({
 }: BlogPostCardProps) => {
   return (
     <Link href={href}>
-    <article  className={`max-w-[650px] h-50 md:h-56 bg-card rounded-md flex flex-col sm:gap-3 gap-1 p-5 ${display === 'shadow' ? 'hover:shadow-(--shadow-card) transition-shadow duration-200 cursor-pointer': 'hover:bg-hover transition-colors pt-6'} ${className} p-1`}>
+    <article  className={`max-w-[800px] h-50 md:h-56 bg-card rounded-md flex flex-col sm:gap-3 gap-1 p-5 ${display === 'shadow' ? 'hover:shadow-(--shadow-card) transition-shadow duration-200 cursor-pointer': 'hover:bg-hover transition-colors pt-6'} ${className} p-1`}>
       <h3 className=" sm:text-2xl text-xl font-extrabold leading-8 line-clamp-2">
        {title}
       </h3>
@@ -33,9 +33,9 @@ const BlogPostCard = ({
           |
         </span>
         <span className="
-
           text-lg
-          truncate
+          line-clamp-1
+          min-w-0
         ">
           {tags.join(', ')}
       </span>
