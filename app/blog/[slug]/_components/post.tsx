@@ -20,13 +20,9 @@ const Content = post.content;
             {post.tags.join(", ")}
           </span>
         </div>
-        <section className="relative">
-          
-        
-            <div className="prose prose-md md:prose-lg prose-li:mb-2 prose-ul:mt-4 hover:prose-a:text-primary hover:prose-a:decoration-primary prose-a:underline prose-p:mt-2 prose-p:mb-4 max-w-none dark:prose-invert prose-headings:font-bold prose-headings:mt-6 prose-headings:mb-2">
-              <Content />
-            </div>
+          <section className="prose prose-md md:prose-lg prose-li:mb-2 prose-ul:mt-4 hover:prose-a:text-primary hover:prose-a:decoration-primary prose-a:underline prose-p:mt-2 prose-p:mb-4 max-w-none dark:prose-invert prose-headings:font-bold prose-headings:mt-6 prose-headings:mb-2">
+          <Content />
         </section>
-    </div>
+  </div>
   )
 }
