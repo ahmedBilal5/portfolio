@@ -8,7 +8,7 @@ interface HeroSectionProps {
   description: string;
   buttonText?: string;
   imageUrl?: string;
-  buttonOnClick?: () => void;
+  buttonHref?: string;
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({
@@ -17,7 +17,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   description,
   buttonText = "Download Resume",
   imageUrl = "https://placehold.co/284x284",
-  buttonOnClick
+  buttonHref,
 }) => {
   return (
       <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10 py-8">
@@ -54,12 +54,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
           
           <div className='flex flex-row justify-center md:justify-start'>
-              <button
-                onClick={buttonOnClick}
-                className="w-48 h-12 bg-red-400 hover:bg-red-500 transition-colors rounded-sm shadow-md text-white dark:text-black text-base font-medium cursor-pointer"
+              <a
+                href={buttonHref}
+                download
+                className="w-48 h-12 bg-red-400 hover:bg-red-500 transition-colors rounded-sm shadow-md text-white dark:text-black text-base font-medium cursor-pointer flex items-center justify-center"
               >
                 {buttonText}
-            </button>
+              </a>
           </div>
         
         </div>
