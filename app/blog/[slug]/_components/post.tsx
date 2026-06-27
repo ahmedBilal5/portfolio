@@ -10,7 +10,7 @@ const Content = post.content;
         </h1>
         <div className="flex flex-row gap-3 items-center my-5">
        
-        <div className="w-14 h-6 sm:w-16 sm:h-8 bg-blue-950 dark:bg-[#AFC3EB] rounded-full flex items-center justify-center">
+        <div className="min-w-14 h-6 sm:w-16 sm:h-8 bg-blue-950 dark:bg-[#AFC3EB] rounded-full flex items-center justify-center">
           <span className="text-white dark:text-blue-950 font-extrabold">
             {new Date(post.publishDate).getFullYear()}
           </span>
