@@ -43,10 +43,7 @@ export default async function Portfolio() {
         description={`Engineer with ${experienceYears} years of experience in software development across multiple domains. Passionate about work that is meaningful and purposeful. Sometimes, I blog about tidbits from my work. `}
         buttonText="Download Resume"
         imageUrl={ProfilePicture.src}
-        buttonOnClick={async () => {
-          "use server";
-          console.log("Resume downloaded");
-        }}
+        buttonHref="/other/Ahmed Bilal Resume.pdf"
       />
       <RecentPosts posts={featuredBlogs} maxPosts={3} />
       <FeaturedWorks
