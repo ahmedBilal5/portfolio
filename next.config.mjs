@@ -11,7 +11,7 @@ const withMDX = createMDX({
     extension: /\.(md|mdx)$/,
   // Add markdown plugins here, as desired
   options: {
-    remarkPlugins: ['remark-prism']
+    remarkPlugins: ['remark-prism', 'remark-gfm']
   }
 })
  

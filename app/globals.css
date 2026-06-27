@@ -53,3 +53,21 @@ body {
   color: var(--color-font);
   overflow-x: hidden;
 }
+
+/* Remove auto-quotes on blockquotes from typography plugin */
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none;
+}
+
+/* Remove auto-backticks on inline code from typography plugin */
+.prose code::before,
+.prose code::after {
+  content: none;
+}
+
+/* Table overflow on small screens */
+.prose table {
+  display: block;
+  overflow-x: auto;
+}
