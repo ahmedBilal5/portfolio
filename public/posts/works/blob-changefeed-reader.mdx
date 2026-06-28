@@ -11,7 +11,19 @@ export const metadata = {
 };
 
 
-
+<figure style={{ textAlign: "center" }}>
+  <img
+    src="https://learn.microsoft.com/en-us/azure/storage/blobs/media/storage-blob-change-feed/change-feed-diagram.png"
+    alt="Blob Changefeed mechanism"
+  />
+  <a
+    target="_blank"
+    href="https://learn.microsoft.com/azure/storage/blobs/storage-blob-change-feed">
+  <figcaption >
+    Blob Change Feed architecture. Source: Microsoft Azure Documentation
+  </figcaption>
+  </a>
+</figure>
 
 For one of my projects at my organization Zones, I needed to implement an intelligent way to synchronize our systems local cache with the data on a Microsoft Azure Storage Account.
 
@@ -28,6 +40,20 @@ And here is how the Azure documentation describes the Azure Storage Blob Change 
 > The purpose of the change feed is to provide transaction logs of all the changes that occur to the blobs and the blob metadata in your storage account. The change feed provides **ordered**, **guaranteed**, **durable**, **immutable**, **read-only** logs of these changes. Client applications can read these logs at any time, either in streaming or in batch mode.
 
 The change feed seemed perfect for my use-case as I required to synchronize changes happening to data in my storage account in Azure with my local cache. It also came at much less of a cost, and so It seemed the right option and I went along with it.
+
+<figure style={{ textAlign: "center" }}>
+  <img
+    src="https://learn.microsoft.com/en-us/azure/storage/blobs/media/storage-blob-change-feed/change-feed-enable-portal.png"
+    alt="Blob Change Option in Azure Portal"
+  />
+  <a
+    target="_blank"
+    href="https://learn.microsoft.com/azure/storage/blobs/storage-blob-change-feed">
+  <figcaption >
+    Blob Change Option in Azure Portal. Source: Microsoft Azure Documentation
+  </figcaption>
+  </a>
+</figure>
 
 So after generating a DevOps support request to enable the change-feed setting on the storage account, my next step was to look for the [Azure SDK](https://learn.microsoft.com/en-us/azure/developer/) library that I would use to read and process the change feed in my application. I found the [package](https://github.com/Azure/azure-sdk-for-js/tree/main/sdk/storage/storage-blob-changefeed) Azure had created as part of their Javascript SDK. Unfortunately, however, upon installing and using the package, I was met with an error while reading the changefeed. I reported [this issue](https://github.com/Azure/azure-sdk-for-js/issues/38184) on github, and got to know that the package I was trying to use has been in preview mode for several years and was not being supported.
 
