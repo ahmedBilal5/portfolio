@@ -61,6 +61,7 @@ export default async function Portfolio() {
                 className="mx-1 inline-block h-4 w-6 rounded-sm"
               />
             </span>
+            {" "}
             with {experienceYears} years of software development experience across
             Frontend, Backend and CI/CD 🛠️💻. Currently working at{" "}
             <a
@@ -71,7 +72,7 @@ export default async function Portfolio() {
             >
               {currentCompany}
             </a>
-            . Eager to explore the world of mobile app development 📱. Would like
+            . Looking to learn a bit about mobile app development📱👀. Would like
             to build some tech that serves a good cause 💪. Sometimes I blog about
             tidbits from my work.
           </>
