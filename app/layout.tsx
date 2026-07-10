@@ -4,6 +4,7 @@ import { Heebo } from "next/font/google";
 import NavBar from "./_components/navBar";
 import { socialPlatforms } from "./constants";
 import Footer from "./_components/footer";
+import { TopBanner } from "./_components/topBanner";
 
 const heebo = Heebo();
 export default function RootLayout({
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider enableSystem={true} defaultTheme="system">
           <div className="w-full max-w-sections mx-auto px-4 md:px-8 flex flex-col min-h-screen">
+            <TopBanner/>
             <NavBar />
             {children}
             <Footer platforms={socialPlatforms} />

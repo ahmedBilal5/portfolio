@@ -5,7 +5,13 @@ import React from 'react';
 interface HeroSectionProps {
   name: string;
   title: string;
-  description: string;
+  description: React.ReactNode;
+  highlights?: {
+    label: string;
+    iconSrc?: string;
+    iconEmoji?: string;
+    iconAlt?: string;
+  }[];
   buttonText?: string;
   imageUrl?: string;
   buttonHref?: string;
@@ -15,6 +21,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   name,
   title,
   description,
+  highlights = [],
   buttonText = "Download Resume",
   imageUrl = "https://placehold.co/284x284",
   buttonHref,
@@ -48,10 +55,33 @@ const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
           
           <div className="mb-6 sm:mb-8">
-            <p className="text-base sm:text-lg leading-relaxed text-center md:text-left">
+            <p className="text-base lg:text-lg leading-relaxed text-center md:text-left">
               {description}
             </p>
           </div>
+
+          {highlights.length > 0 && (
+            <div className="mb-6 flex flex-wrap justify-center md:justify-start gap-2 sm:gap-2.5">
+              {highlights.map((highlight) => (
+                <span
+                  key={highlight.label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-black/10 dark:border-white/15 bg-hover px-2.5 py-1 text-xs sm:text-sm"
+                >
+                  {highlight.iconSrc ? (
+                    <img
+                      src={highlight.iconSrc}
+                      alt={highlight.iconAlt ?? `${highlight.label} icon`}
+                      className="h-4 w-4"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span aria-hidden="true" className="text-sm leading-none">{highlight.iconEmoji ?? "•"}</span>
+                  )}
+                  <span>{highlight.label}</span>
+                </span>
+              ))}
+            </div>
+          )}
           
           <div className='flex flex-row justify-center md:justify-start'>
               <a
