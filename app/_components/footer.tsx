@@ -6,13 +6,14 @@ export interface Platform {
 }
 
 interface FooterProps {
-    platforms: Platform[]
+    platforms: Platform[];
+    className?: string;
 }
-const Footer = ({platforms}: FooterProps) => {
+const Footer = ({ platforms, className = "" }: FooterProps) => {
 const year = new Date().getFullYear();
 
   return (
-    <section className="py-4 md:py-6 my-15 sm:my-20">
+    <section className={`py-4 md:py-6 my-15 sm:my-20 ${className}`}>
         <div className=" flex flex-col gap-4 items-center justify-center ">
             <div className="flex flex-row gap-4 items-center justify-center">
                 {platforms.map((platform) => (
@@ -28,7 +29,7 @@ const year = new Date().getFullYear();
                         </a>
                 ))}
             </div>
-            <h3 className=" text-base font-normal line-clamp-3">
+            <h3 className={`font-normal line-clamp-3`}>
                Copyright © {year}. All Rights Reserved
             </h3>
             <div className="flex flex-row gap-4 items-center justify-center">

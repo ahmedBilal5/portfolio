@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ThemeButton } from "./themeButton";
+import Footer from "./footer";
+import { socialPlatforms } from "../constants";
 
 const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -56,24 +58,34 @@ const NavBar = () => {
     <section className="sticky top-0 z-10">
       
         {/* {Menu Overlay for small screens} */}
-        <ul
+        <div
           className={`fixed inset-0  flex flex-col items-center justify-start pt-28 bg-background space-y-6 shadow-inner 
                             transform transition-transform duration-300 md:hidden
                             ${menuOpen ? "translate-x-0" : "translate-x-full"}`}
         >
-          {navItems.map((navItem) => (
-            <li key={navItem.title}>
-              <Link
-                href={navItem.href}
-                className="text-lg font-medium cursor-pointer hover:text-red-400"
-                onClick={() => setMenuOpen(false)}
-              >
-                {navItem.title}
-              </Link>
+          <ul className="flex flex-col items-center justify-start space-y-6">
+            {navItems.map((navItem) => (
+              <li key={navItem.title}>
+                <Link
+                  href={navItem.href}
+                  className="text-lg font-medium cursor-pointer hover:text-red-400"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {navItem.title}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <div onClick={() => setMenuOpen(false)}>
+                <ThemeButton />
+              </div>
             </li>
-          ))}
-          <ThemeButton />
-        </ul>
+          </ul>
+          <Footer
+            platforms={socialPlatforms}
+            className="mt-auto"
+          />
+        </div>
 
        {/* {Top NavBar actual} */}
       <div
