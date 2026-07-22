@@ -53,15 +53,7 @@ export default async function Portfolio() {
         title="Software Engineer"
         description={
           <>
-            Engineer from{" "}
-            <span className="inline-flex items-center align-baseline">
-              <img
-                src="/images/pakistan-flag.svg"
-                alt="Pakistan flag"
-                className="mx-1 inline-block h-4 w-6 rounded-sm"
-              />
-            </span>
-            {" "}
+            Engineer from Pakistan
             with {experienceYears} years of software development experience across
             Frontend, Backend and CI/CD. Currently working at{" "}
             <a
