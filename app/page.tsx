@@ -11,12 +11,12 @@ export default async function Portfolio() {
   const currentCompany = "Zones IT Solutions";
 
   const heroHighlights = [
-    { label: "TypeScript", iconSrc: "https://cdn.simpleicons.org/typescript" },
-    { label: "React", iconSrc: "https://cdn.simpleicons.org/react" },
-    { label: "GraphQL", iconSrc: "https://cdn.simpleicons.org/graphql" },
-    { label: "NestJS", iconSrc: "https://cdn.simpleicons.org/nestjs" },
-    { label: "Python", iconSrc: "https://cdn.simpleicons.org/python" },
-    { label: "Git", iconSrc: "https://cdn.simpleicons.org/git" },
+    // { label: "TypeScript", iconSrc: "https://cdn.simpleicons.org/typescript" },
+    // { label: "React", iconSrc: "https://cdn.simpleicons.org/react" },
+    // { label: "GraphQL", iconSrc: "https://cdn.simpleicons.org/graphql" },
+    // { label: "NestJS", iconSrc: "https://cdn.simpleicons.org/nestjs" },
+    // { label: "Python", iconSrc: "https://cdn.simpleicons.org/python" },
+    // { label: "Git", iconSrc: "https://cdn.simpleicons.org/git" },
   ];
 
   const featuredBlogs = (await getAllPosts("blogs"))
@@ -53,17 +53,9 @@ export default async function Portfolio() {
         title="Software Engineer"
         description={
           <>
-            Engineer from{" "}
-            <span className="inline-flex items-center align-baseline">
-              <img
-                src="/images/pakistan-flag.svg"
-                alt="Pakistan flag"
-                className="mx-1 inline-block h-4 w-6 rounded-sm"
-              />
-            </span>
-            {" "}
+            Engineer from Pakistan
             with {experienceYears} years of software development experience across
-            Frontend, Backend and CI/CD 🛠️💻. Currently working at{" "}
+            Frontend, Backend and CI/CD. Currently working at{" "}
             <a
               href="https://www.linkedin.com/company/zones-it-solutions/posts/?feedView=all"
               target="_blank"
@@ -72,8 +64,8 @@ export default async function Portfolio() {
             >
               {currentCompany}
             </a>
-            . Looking to learn a bit about mobile app development📱👀. Would like
-            to build some tech that serves a good cause 💪. Sometimes I blog about
+            . Looking to learn a bit about mobile app development. Would like
+            to build some tech that serves a good cause. Sometimes I blog about
             tidbits from my work.
           </>
         }
